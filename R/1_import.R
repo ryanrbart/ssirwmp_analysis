@@ -22,26 +22,7 @@ e <- extent(ss_border_sp)
 #kml(ss_border_sp, file.name = "data/kml/ssrwmg.kml")
 
 # ---------------------------------------------------------------------
-# Import temperature
-
-tmax_files <- list.files(path = 'data/temperature_california_annual_4.5', pattern='tasmax_', full.names = T)
-tmax_1 <- raster::raster(tmax_files[1])
-ss_tmax_1 <- crop(tmax_1, e, snap="out")
-tmax_stack = raster::stack(tmax_files)
-ss_tmax_stack <- crop(tmax_stack, e, snap="out")
-#ss_tmax_brick <- brick(ss_tmax_stack)
-
-# ---------------------------------------------------------------------
-# Import precipitation
-
-precip_files <- list.files(path = 'data/precip_california_annual_4.5', pattern='pr_year_', full.names = T)
-precip_1 <- raster::raster(precip_files[1])
-ss_precip_1 <- crop(precip_1, e, snap="out")
-precip_stack = raster::stack(precip_files)
-ss_precip_stack <- crop(precip_stack, e, snap="out")
-
-# ---------------------------------------------------------------------
-# Import MACA
+# Import MACA (Temperature and Precipitation)
 
 # Function that adjusts MACA x coordinate and converts kelvin to celcius
 chg_x_coord <- function(x){
@@ -101,7 +82,61 @@ tmin_85[is.na(ss_border_rast) == TRUE] <- NA
 
 
 # ---------------------------------------------------------------------
-# Import ????
+# Import Forest Mortality Data
+
+# Forest mortality geodatabase (https://www.fs.usda.gov/detail/r5/forest-grasslandhealth/?cid=fsbdev3_046696)
+
+# Check layers
+st_layers(dsn = "data/forest_service_mortality/ADS2016.gdb")
+st_layers(dsn = "data/forest_service_mortality/ADS2017.gdb")
+
+# Import data
+mort_2016 <- st_read(dsn = "data/forest_service_mortality/ADS2016.gdb",
+                     layer = "ADS16",
+                     type = 6) # See sf vignette #3. Using default 0 produces geometry type: Geometry, which does not process well
+mort_2017 <- st_read(dsn = "data/forest_service_mortality/ADS2017.gdb",
+                     layer = "ADS17",
+                     type = 6) # See sf vignette #3. Using default 0 produces geometry type: Geometry, which does not process well
+
+# Reproject
+mort_2016 <- st_transform(mort_2016, crs = proj_longlat)
+mort_2017 <- st_transform(mort_2017, crs = proj_longlat)
+
+# Subset by SS
+ss_mort_2016 <- st_intersection(mort_2016, ss_border)
+ss_mort_2017 <- st_intersection(mort_2017, ss_border)
+
+
+# ---------------------------------------------------------------------
+# Import Stream Temperature
+
+# Import data
+stream_lines <- st_read(dsn = "data/stream_temperature/", layer = "NorWeST_PredictedStreamTempLines_CentralCA")
+stream_points <- st_read(dsn = "data/stream_temperature/", layer = "NorWeST_PredictedStreamTempPoints_CentralCA")
+
+# Reproject
+stream_lines <- st_transform(stream_lines, crs = proj_longlat)
+stream_points <- st_transform(stream_points, crs = proj_longlat)
+
+# Subset by SS
+ss_stream_lines <- st_intersection(stream_lines, ss_border)
+ss_stream_points <- st_intersection(stream_points, ss_border)
+
+# Filter out non-valid data (Scenarios 37-41 have data when all others are -9999)
+ss_stream_lines <- ss_stream_lines %>% 
+  dplyr::filter(S1_93_11 != -9999.00)
+ss_stream_points <- ss_stream_points %>% 
+  dplyr::filter(S1_93_11 != -9999.00)
+
+
+# ---------------------------------------------------------------------
+# Import 
+
+
+
+
+
+
 
 
 

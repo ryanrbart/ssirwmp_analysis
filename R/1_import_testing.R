@@ -348,6 +348,17 @@ plotRGB(ss_tmax_stack, r=2, g=2, b=2, stretch="lin")
 levelplot(ss_tmax_stack)
 
 
+# -------------
+# Example of buffer
+
+# Test of buffer
+a <- st_buffer(ss_border, dist = .2)
+ggplot() +
+  geom_sf(data=a, fill=NA, col="black") +
+  geom_sf(data=ss_border, fill=NA, col="black")
+
+
+# -------------
 
 
 

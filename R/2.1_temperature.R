@@ -7,12 +7,17 @@ source("R/0_utilities.R")
 # ---------------------------------------------------------------------
 # Time-series (processing)
 
+# Guidelines from https://climate.northwestknowledge.net/MACA/MACAanalysis.php
+# recommend that first average over years, then over study area
+# Unclear if that will work for this analysis, since interest is region as whole
+
+
 # Transfer from brick to tibble (and compute on mean value of region)
 timeseries_mean <- function(brick){
   x <- cellStats(brick, stat=mean)
   y <- brick %>% 
     names() %>% 
-    str_replace("X", "") %>% 
+    str_replace("X", "") %>%   # Remove extra 'X' from date 
     ymd()
   tib <- tibble(date = y,
                 year = year(y),
@@ -22,63 +27,286 @@ timeseries_mean <- function(brick){
   return(tib)
 }
 
-# Run function
-tmax_hist_tib <- timeseries_mean(tmax_hist)
-tmax_45_tib <- timeseries_mean(tmax_45)
-tmax_85_tib <- timeseries_mean(tmax_85)
-tmin_hist_tib <- timeseries_mean(tmin_hist)
-tmin_45_tib <- timeseries_mean(tmin_45)
-tmin_85_tib <- timeseries_mean(tmin_85)
+# Combine projection scenarios
+temp_hist_tib <- temp_hist %>% 
+  purrr::map(timeseries_mean) %>% 
+  bind_rows(.id="type") %>% 
+  separate(type, into=c("temp_var", "rcp", "gcm")) %>% 
+  mutate(season = case_when(
+    (month==1)~"1",(month==2)~"1",(month==3)~"1",
+    (month==4)~"2",(month==5)~"2",(month==6)~"2",
+    (month==7)~"3",(month==8)~"3",(month==9)~"3",
+    (month==10)~"4",(month==11)~"4",(month==12)~"4"
+  ))
 
-# Combine scenarios
-temp_tib <- bind_rows(tmax_45 = tmax_45_tib,
-                      tmax_85 = tmax_85_tib,
-                      tmin_45 = tmin_45_tib,
-                      tmin_85 = tmin_85_tib,
-                      .id = "type")
 
-temp_tib <- separate(temp_tib, type, into=c("temp_type","rcp"))
+temp_proj_tib <- temp_proj %>% 
+  purrr::map(timeseries_mean) %>% 
+  bind_rows(.id="type") %>% 
+  separate(type, into=c("temp_var", "rcp", "gcm")) %>% 
+  mutate(season = case_when(
+    (month==1)~"1",(month==2)~"1",(month==3)~"1",
+    (month==4)~"2",(month==5)~"2",(month==6)~"2",
+    (month==7)~"3",(month==8)~"3",(month==9)~"3",
+    (month==10)~"4",(month==11)~"4",(month==12)~"4"
+  ))
 
-# Attach historical mean in new column
-tmax_hist_mean <- mean(tmax_hist_tib$temp)
-tmax_hist_mean_v <- rep(tmax_hist_mean, length(tmax_45_tib$date) + length(tmax_85_tib$date))
-tmin_hist_mean <- mean(tmin_hist_tib$temp)
-tmin_hist_mean_v <- rep(tmin_hist_mean, length(tmin_45_tib$date) + length(tmin_85_tib$date))
-temp_hist_mean_v <- c(tmax_hist_mean_v, tmin_hist_mean_v)
-temp_tib <- bind_cols(temp_tib, temp_hist_mean = temp_hist_mean_v)
+# Group historical by year so that they means can be joined to future scenarios
+temp_hist_year <- temp_hist_tib %>% 
+  group_by(temp_var, gcm) %>% 
+  summarize(temp_hist_annual = mean(temp))
 
-# Produce annual data
-temp_annual <- temp_tib %>% 
-  group_by(temp_type, rcp, year, temp_hist_mean) %>% 
-  summarise(temp = mean(temp)) %>% 
-  mutate(temp_diff = temp-temp_hist_mean)
+# Group historical by month so that they means can be joined to future scenarios
+temp_hist_month <- temp_hist_tib %>% 
+  group_by(temp_var, gcm, month) %>% 
+  summarize(temp_hist_month = mean(temp))
+
+# Group historical by season so that they means can be joined to future scenarios
+temp_hist_season <- temp_hist_tib %>% 
+  group_by(temp_var, gcm, season) %>% 
+  summarize(temp_hist_season = mean(temp))
+
+# Join historical scenarios to future projections and add future period groupings
+temp_tib_final <- temp_proj_tib %>% 
+  left_join(temp_hist_year, by = c("temp_var", "gcm")) %>% 
+  left_join(temp_hist_month, by = c("temp_var", "gcm", "month")) %>% 
+  left_join(temp_hist_season, by = c("temp_var", "gcm", "season")) %>% 
+  dplyr::filter(year >= 2010) %>% 
+  mutate(future_period = case_when(
+    between(year,2010,2039) ~ "2010-39",
+    between(year,2040,2069) ~ "2040-69",
+    between(year,2070,2099) ~ "2070-99"
+  ))
+
+# ----
+
+# Produce summarized annual data
+temp_annual <- temp_tib_final %>% 
+  group_by(temp_var, rcp, gcm, year, future_period) %>% 
+  summarise(temp = mean(temp), temp_hist_annual=mean(temp_hist_annual)) %>% 
+  mutate(temp_annual_diff = temp-temp_hist_annual)
+temp_annual_by_fp <- temp_annual %>% 
+  group_by(temp_var, rcp, gcm, future_period) %>% 
+  summarise(temp = mean(temp), temp_hist_annual=mean(temp_hist_annual),
+            temp_annual_diff=mean(temp_annual_diff))
+
+temp_annual_max <- dplyr::filter(temp_annual, temp_var == "tmax")
+temp_annual_min <- dplyr::filter(temp_annual, temp_var == "tmin")
+temp_annual_by_fp_max <- dplyr::filter(temp_annual_by_fp, temp_var == "tmax")
+temp_annual_by_fp_min <- dplyr::filter(temp_annual_by_fp, temp_var == "tmin")
+
+
+# Produce summarized monthly data
+temp_month <- temp_tib_final %>% 
+  mutate(temp_monthly_diff = temp-temp_hist_month)
+temp_month_by_fp <- temp_month %>% 
+  group_by(temp_var, rcp, gcm, month, future_period) %>% 
+  summarise(temp = mean(temp), temp_hist_month=mean(temp_hist_month),
+            temp_monthly_diff=mean(temp_monthly_diff))
+
+temp_month_max <- dplyr::filter(temp_month, temp_var == "tmax")
+temp_month_min <- dplyr::filter(temp_month, temp_var == "tmin")
+temp_month_by_fp_max <- dplyr::filter(temp_month_by_fp, temp_var == "tmax")
+temp_month_by_fp_min <- dplyr::filter(temp_month_by_fp, temp_var == "tmin")
+
+
+# Produce summarized seasonal data
+temp_season <- temp_tib_final %>% 
+  group_by(temp_var, rcp, gcm, year, season, future_period) %>% 
+  summarise(temp = mean(temp), temp_hist_season = mean(temp_hist_season)) %>% 
+  mutate(temp_seasonal_diff = temp-temp_hist_season)
+temp_season_by_fp <- temp_season %>% 
+  group_by(temp_var, rcp, gcm, season, future_period) %>% 
+  summarise(temp = mean(temp), temp_hist_season=mean(temp_hist_season),
+            temp_seasonal_diff=mean(temp_seasonal_diff))
+
+temp_season_max <- dplyr::filter(temp_season, temp_var == "tmax")
+temp_season_min <- dplyr::filter(temp_season, temp_var == "tmin")
+temp_season_by_fp_max <- dplyr::filter(temp_season_by_fp, temp_var == "tmax")
+temp_season_by_fp_min <- dplyr::filter(temp_season_by_fp, temp_var == "tmin")
 
 
 # ---------------------------------------------------------------------
-# Time-series (lumped region)
+# Time-series
 
 # Annual
 ggplot() +
-  geom_line(data=temp_annual, aes(x=year,y=temp, col=rcp, linetype=temp_type)) +
-  geom_hline(yintercept = tmax_hist_mean) +
-  geom_hline(yintercept = tmin_hist_mean)
+  geom_line(data=temp_annual, aes(x=year,y=temp, col=rcp, linetype=temp_var)) +
+  facet_grid(.~gcm)
 
 # Annual Difference
 ggplot() +
-  geom_line(data=temp_annual,aes(x=year,y=temp_diff, col=rcp))+
-  facet_grid(~temp_type)
+  geom_line(data=temp_annual,aes(x=year,y=temp_annual_diff, col=rcp)) +
+  facet_grid(temp_var~gcm)
+
+
+# ---------------------------------------------------------------------
+# Box plot by time-periods (annual)
+
+temp_id <- c(
+  `tmax` = "Maximum Temperature",
+  `tmin` = "Minimum Temperature"
+)
+
+# Actual temperatures (C)
+ggplot() + 
+  geom_boxplot(data=temp_annual_by_fp, aes(future_period, temp, shape=temp_var, fill=rcp),
+               color="black") +
+  labs(title = "Projected Temperature", x = "Period", y = expression('Temperature'~'('~degree*'C)')) +
+  scale_fill_discrete(name="RCP", labels = c("4.5","8.5")) +
+  theme_bw()
+
+# Changes in temperature (currently min and max combined)
+ggplot() + 
+  geom_boxplot(data=temp_annual_by_fp, aes(future_period, temp_annual_diff, fill=rcp),
+               color="black", outlier.shape = NA) +
+  labs(title = "Changes in Temperature from Historical Baseline", x = "Period", y = expression('Change'~'in'~'Temperature'~'('~degree*'C)')) +
+  geom_hline(yintercept = 0) +
+  scale_fill_discrete(name="RCP", labels = c("4.5","8.5")) +
+  facet_grid(.~temp_var, labeller = as_labeller(temp_id)) +
+  theme_bw()
 
 
 
 # ---------------------------------------------------------------------
-# Time-series (Sub-regions or sub-periods)
-# Potential sub-regions: watersheds, elevation
+# Box plot by time-periods (monthly)
+
+month_id <- c(
+  `1` = "Jan", `2` = "Feb", `3` = "Mar",`4` = "Apr",
+  `5` = "May",`6` = "Jun",`7` = "Jul",`8` = "Aug",
+  `9` = "Sep",`10` = "Oct",`11` = "Nov",`12` = "Dec"
+)
+
+# Actual Monthly Temperatures - Max
+ggplot() + 
+  geom_boxplot(data=temp_month_by_fp_max, aes(future_period, temp, fill=rcp),
+               color="black", outlier.shape = NA) +
+  labs(title = "Projected Maximum Temperature", x = "Period", y = expression('Temperature'~'('~degree*'C)')) +
+  scale_fill_discrete(name="RCP", labels = c("4.5","8.5")) +
+  facet_wrap(~month, labeller = as_labeller(month_id)) +
+  theme_bw()
+
+# Actual Monthly Temperatures - Min
+ggplot() + 
+  geom_boxplot(data=temp_month_by_fp_min, aes(future_period, temp, fill=rcp),
+               color="black", outlier.shape = NA) +
+  labs(title = "Projected Minimum Temperature", x = "Period", y = expression('Temperature'~'('~degree*'C)')) +
+  scale_fill_discrete(name="RCP", labels = c("4.5","8.5")) +
+  facet_wrap(~month, labeller = as_labeller(month_id)) +
+  theme_bw()
+
+# Change in monthly temperature - Max 
+ggplot() + 
+  geom_boxplot(data=temp_month_by_fp_max, aes(future_period, temp_monthly_diff, fill=rcp),
+               color="black", outlier.shape = NA) +
+  labs(title = "Changes in Maximum Temperature from Historical Baseline", x = "Period", y = expression('Change'~'in'~'Temperature'~'('~degree*'C)')) +
+  geom_hline(yintercept = 0) +
+  scale_fill_discrete(name="RCP", labels = c("4.5","8.5")) +
+  facet_wrap(~month, labeller = as_labeller(month_id)) +
+  theme_bw()
+
+# Change in monthly temperature - Min 
+ggplot() + 
+  geom_boxplot(data=temp_month_by_fp_min, aes(future_period, temp_monthly_diff, fill=rcp),
+               color="black", outlier.shape = NA) +
+  labs(title = "Changes in Minimum Temperature from Historical Baseline", x = "Period", y = expression('Change'~'in'~'Temperature'~'('~degree*'C)')) +
+  geom_hline(yintercept = 0) +
+  scale_fill_discrete(name="RCP", labels = c("4.5","8.5")) +
+  facet_wrap(~month, labeller = as_labeller(month_id)) +
+  theme_bw()
+
+# ---------------------------------------------------------------------
+# Box plot by time-periods (Seasonal)
+
+season_id <- c(
+  `1` = "Jan-Feb-Mar",
+  `2` = "Apr-May-Jun",
+  `3` = "Jul-Aug-Sep",
+  `4` = "Oct-Nov-Dec"
+)
+
+# Actual Seasonal Temperatures - Max
+ggplot() + 
+  geom_boxplot(data=temp_season_by_fp_max, aes(future_period, temp, fill=rcp),
+               color="black", outlier.shape = NA) +
+  labs(title = "Projected Maximum Temperature", x = "Period", y = expression('Temperature'~'('~degree*'C)')) +
+  scale_fill_discrete(name="RCP", labels = c("4.5","8.5")) +
+  facet_wrap(~season, labeller = as_labeller(season_id)) +
+  theme_bw()
+
+# Actual Seasonal Temperatures - Min
+ggplot() + 
+  geom_boxplot(data=temp_season_by_fp_min, aes(future_period, temp, fill=rcp),
+               color="black", outlier.shape = NA) +
+  labs(title = "Projected Minimum Temperature", x = "Period", y = expression('Temperature'~'('~degree*'C)')) +
+  scale_fill_discrete(name="RCP", labels = c("4.5","8.5")) +
+  facet_wrap(~season, labeller = as_labeller(season_id)) +
+  theme_bw()
+
+# Change in seasonal temperature - Max 
+ggplot() + 
+  geom_boxplot(data=temp_season_by_fp_max, aes(future_period, temp_seasonal_diff, fill=rcp),
+               color="black", outlier.shape = NA) +
+  labs(title = "Changes in Maximum Temperature from Historical Baseline", x = "Period", y = expression('Change'~'in'~'Temperature'~'('~degree*'C)')) +
+  geom_hline(yintercept = 0) +
+  scale_fill_discrete(name="RCP", labels = c("4.5","8.5")) +
+  facet_wrap(~season, labeller = as_labeller(season_id)) +
+  theme_bw()
+
+# Change in seasonal temperature - Min 
+ggplot() + 
+  geom_boxplot(data=temp_season_by_fp_min, aes(future_period, temp_seasonal_diff, fill=rcp),
+               color="black", outlier.shape = NA) +
+  labs(title = "Changes in Minimum Temperature from Historical Baseline", x = "Period", y = expression('Change'~'in'~'Temperature'~'('~degree*'C)')) +
+  geom_hline(yintercept = 0) +
+  scale_fill_discrete(name="RCP", labels = c("4.5","8.5")) +
+  facet_wrap(~season, labeller = as_labeller(season_id)) +
+  theme_bw()
+
+
+
+# ---------------------------------------------------------------------
+# Mean monthly temperatures
+
+happy <- temp_month_by_fp_max %>% 
+  group_by(rcp,future_period,month) %>% 
+  summarize(month_temp=mean(temp))
+
+ggplot() +
+  geom_line(data=happy, aes(x=month,y=month_temp, color=future_period)) +
+  facet_grid(rcp~.)
+
 
 
 
 
 # ---------------------------------------------------------------------
-# Plots
+# Table (Historical plus 30-year change groupings)
+
+library(knitr)
+library(kableExtra)
+
+# 
+temp_annual %>% 
+  dplyr::filter(year >= 2010) %>% 
+  group_by(temp_var,rcp,future_period) %>% 
+  summarize(temp_annual_diff_period = mean(temp_annual_diff))
+
+
+temp_month %>% 
+  dplyr::filter(year >= 2010) %>% 
+  group_by(temp_var,rcp,future_period, month) %>% 
+  summarize(temp_month_diff_period = mean(temp_monthly_diff)) %>%
+  unite(rcp_period, rcp, future_period) %>% 
+  spread(key = rcp_period, value = temp_month_diff_period)
+#rename columns
+
+
+
+
+
+# ---------------------------------------------------------------------
+# Spatial Plots
 
 par(mfrow=c(1,1)) 
 happy <- calc(tmax_85, mean)   # Generates long-term tmax 

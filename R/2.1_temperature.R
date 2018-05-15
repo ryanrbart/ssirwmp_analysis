@@ -148,24 +148,42 @@ temp_id <- c(
   `tmin` = "Minimum Temperature"
 )
 
-# Actual temperatures (C)
+# Actual temperatures - Max
 ggplot() + 
-  geom_boxplot(data=temp_annual_by_fp, aes(future_period, temp, shape=temp_var, fill=rcp),
+  geom_boxplot(data=temp_annual_by_fp_max, aes(future_period, temp, fill=rcp),
                color="black") +
-  labs(title = "Projected Temperature", x = "Period", y = expression('Temperature'~'('~degree*'C)')) +
+  labs(title = "Projected Maximum Annual Temperatures", x = "Period", y = expression('Temperature'~'('~degree*'C)')) +
   scale_fill_discrete(name="RCP", labels = c("4.5","8.5")) +
   theme_bw()
+ggsave("output/box_annual_max.jpg", width = 4, height = 3)
 
-# Changes in temperature (currently min and max combined)
+
+# Actual temperatures - Min
+ggplot() + 
+  geom_boxplot(data=temp_annual_by_fp_min, aes(future_period, temp, fill=rcp),
+               color="black") +
+  labs(title = "Projected Minimum Annual Temperatures", x = "Period", y = expression('Temperature'~'('~degree*'C)')) +
+  scale_fill_discrete(name="RCP", labels = c("4.5","8.5")) +
+  theme_bw()
+ggsave("output/box_annual_min.jpg", width = 4, height = 3)
+
+
+# Changes in temperature
 ggplot() + 
   geom_boxplot(data=temp_annual_by_fp, aes(future_period, temp_annual_diff, fill=rcp),
                color="black", outlier.shape = NA) +
-  labs(title = "Changes in Temperature from Historical Baseline", x = "Period", y = expression('Change'~'in'~'Temperature'~'('~degree*'C)')) +
+  labs(title = "Projected Change in Annual Temperatures", x = "Period", y = expression('Change'~'in'~'Temperature'~'('~degree*'C)')) +
   geom_hline(yintercept = 0) +
   scale_fill_discrete(name="RCP", labels = c("4.5","8.5")) +
   facet_grid(.~temp_var, labeller = as_labeller(temp_id)) +
   theme_bw()
+ggsave("output/box_annual_delta.jpg", width = 6, height = 4)
 
+
+# Baseline annual temperature values
+temp_annual_by_fp %>% 
+  group_by(temp_var) %>% 
+  summarise(mean = mean(temp_hist_annual))
 
 
 # ---------------------------------------------------------------------
@@ -181,39 +199,43 @@ month_id <- c(
 ggplot() + 
   geom_boxplot(data=temp_month_by_fp_max, aes(future_period, temp, fill=rcp),
                color="black", outlier.shape = NA) +
-  labs(title = "Projected Maximum Temperature", x = "Period", y = expression('Temperature'~'('~degree*'C)')) +
+  labs(title = "Projected Maximum Monthly Temperatures", x = "Period", y = expression('Temperature'~'('~degree*'C)')) +
   scale_fill_discrete(name="RCP", labels = c("4.5","8.5")) +
   facet_wrap(~month, labeller = as_labeller(month_id)) +
   theme_bw()
+ggsave("output/box_monthly_max.jpg", width = 8, height = 6)
 
 # Actual Monthly Temperatures - Min
 ggplot() + 
   geom_boxplot(data=temp_month_by_fp_min, aes(future_period, temp, fill=rcp),
                color="black", outlier.shape = NA) +
-  labs(title = "Projected Minimum Temperature", x = "Period", y = expression('Temperature'~'('~degree*'C)')) +
+  labs(title = "Projected Minimum Monthly Temperatures", x = "Period", y = expression('Temperature'~'('~degree*'C)')) +
   scale_fill_discrete(name="RCP", labels = c("4.5","8.5")) +
   facet_wrap(~month, labeller = as_labeller(month_id)) +
   theme_bw()
+ggsave("output/box_monthly_min.jpg", width = 8, height = 6)
 
 # Change in monthly temperature - Max 
 ggplot() + 
   geom_boxplot(data=temp_month_by_fp_max, aes(future_period, temp_monthly_diff, fill=rcp),
                color="black", outlier.shape = NA) +
-  labs(title = "Changes in Maximum Temperature from Historical Baseline", x = "Period", y = expression('Change'~'in'~'Temperature'~'('~degree*'C)')) +
+  labs(title = "Projected Change in Maximum Monthly Temperatures", x = "Period", y = expression('Change'~'in'~'Temperature'~'('~degree*'C)')) +
   geom_hline(yintercept = 0) +
   scale_fill_discrete(name="RCP", labels = c("4.5","8.5")) +
   facet_wrap(~month, labeller = as_labeller(month_id)) +
   theme_bw()
+ggsave("output/box_monthly_max_delta.jpg", width = 8, height = 6)
 
 # Change in monthly temperature - Min 
 ggplot() + 
   geom_boxplot(data=temp_month_by_fp_min, aes(future_period, temp_monthly_diff, fill=rcp),
                color="black", outlier.shape = NA) +
-  labs(title = "Changes in Minimum Temperature from Historical Baseline", x = "Period", y = expression('Change'~'in'~'Temperature'~'('~degree*'C)')) +
+  labs(title = "Projected Change in Minimum Monthly Temperatures", x = "Period", y = expression('Change'~'in'~'Temperature'~'('~degree*'C)')) +
   geom_hline(yintercept = 0) +
   scale_fill_discrete(name="RCP", labels = c("4.5","8.5")) +
   facet_wrap(~month, labeller = as_labeller(month_id)) +
   theme_bw()
+ggsave("output/box_monthly_min_delta.jpg", width = 8, height = 6)
 
 # ---------------------------------------------------------------------
 # Box plot by time-periods (Seasonal)
@@ -229,41 +251,48 @@ season_id <- c(
 ggplot() + 
   geom_boxplot(data=temp_season_by_fp_max, aes(future_period, temp, fill=rcp),
                color="black", outlier.shape = NA) +
-  labs(title = "Projected Maximum Temperature", x = "Period", y = expression('Temperature'~'('~degree*'C)')) +
+  labs(title = "Projected Maximum Seasonal Temperatures", x = "Period", y = expression('Temperature'~'('~degree*'C)')) +
   scale_fill_discrete(name="RCP", labels = c("4.5","8.5")) +
   facet_wrap(~season, labeller = as_labeller(season_id)) +
   theme_bw()
+ggsave("output/box_seasonal_max.jpg", width = 5, height = 4)
 
 # Actual Seasonal Temperatures - Min
 ggplot() + 
   geom_boxplot(data=temp_season_by_fp_min, aes(future_period, temp, fill=rcp),
                color="black", outlier.shape = NA) +
-  labs(title = "Projected Minimum Temperature", x = "Period", y = expression('Temperature'~'('~degree*'C)')) +
+  labs(title = "Projected Minimum Seasonal Temperatures", x = "Period", y = expression('Temperature'~'('~degree*'C)')) +
   scale_fill_discrete(name="RCP", labels = c("4.5","8.5")) +
   facet_wrap(~season, labeller = as_labeller(season_id)) +
   theme_bw()
+ggsave("output/box_seasonal_min.jpg", width = 5, height = 4)
 
 # Change in seasonal temperature - Max 
 ggplot() + 
   geom_boxplot(data=temp_season_by_fp_max, aes(future_period, temp_seasonal_diff, fill=rcp),
                color="black", outlier.shape = NA) +
-  labs(title = "Changes in Maximum Temperature from Historical Baseline", x = "Period", y = expression('Change'~'in'~'Temperature'~'('~degree*'C)')) +
+  labs(title = "Projected Change in Maximum Seasonal Temperatures", x = "Period", y = expression('Change'~'in'~'Temperature'~'('~degree*'C)')) +
   geom_hline(yintercept = 0) +
   scale_fill_discrete(name="RCP", labels = c("4.5","8.5")) +
   facet_wrap(~season, labeller = as_labeller(season_id)) +
   theme_bw()
+ggsave("output/box_seasonal_max_delta.jpg", width = 5, height = 4)
 
 # Change in seasonal temperature - Min 
 ggplot() + 
   geom_boxplot(data=temp_season_by_fp_min, aes(future_period, temp_seasonal_diff, fill=rcp),
                color="black", outlier.shape = NA) +
-  labs(title = "Changes in Minimum Temperature from Historical Baseline", x = "Period", y = expression('Change'~'in'~'Temperature'~'('~degree*'C)')) +
+  labs(title = "Projected Change in Minimum Seasonal Temperatures", x = "Period", y = expression('Change'~'in'~'Temperature'~'('~degree*'C)')) +
   geom_hline(yintercept = 0) +
   scale_fill_discrete(name="RCP", labels = c("4.5","8.5")) +
   facet_wrap(~season, labeller = as_labeller(season_id)) +
   theme_bw()
+ggsave("output/box_seasonal_min_delta.jpg", width = 5, height = 4)
 
-
+# Baseline seasonal temperature values
+temp_season_by_fp %>% 
+  group_by(temp_var, season) %>% 
+  summarise(mean = mean(temp_hist_season))
 
 # ---------------------------------------------------------------------
 # Mean monthly temperatures
@@ -287,21 +316,24 @@ library(knitr)
 library(kableExtra)
 
 # 
-temp_annual %>% 
-  dplyr::filter(year >= 2010) %>% 
+temp_annual_by_fp %>% 
   group_by(temp_var,rcp,future_period) %>% 
   summarize(temp_annual_diff_period = mean(temp_annual_diff))
 
 
-temp_month %>% 
-  dplyr::filter(year >= 2010) %>% 
+temp_month_by_fp %>% 
   group_by(temp_var,rcp,future_period, month) %>% 
   summarize(temp_month_diff_period = mean(temp_monthly_diff)) %>%
   unite(rcp_period, rcp, future_period) %>% 
   spread(key = rcp_period, value = temp_month_diff_period)
 #rename columns
 
-
+temp_season_by_fp %>% 
+  group_by(temp_var,rcp,future_period, season) %>% 
+  summarize(temp_season_diff_period = median(temp_seasonal_diff)) %>%
+  unite(rcp_period, rcp, future_period) %>% 
+  spread(key = rcp_period, value = temp_season_diff_period)
+#rename columns
 
 
 
@@ -309,7 +341,7 @@ temp_month %>%
 # Spatial Plots
 
 par(mfrow=c(1,1)) 
-happy <- calc(tmax_85, mean)   # Generates long-term tmax 
+happy <- calc(temp_hist[[1]], mean)   # Generates long-term tmax 
 
 # Base
 #plot(happy)

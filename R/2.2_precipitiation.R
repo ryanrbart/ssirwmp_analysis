@@ -133,18 +133,24 @@ ggplot() +
   geom_boxplot(data=precip_annual_by_fp, aes(future_period, precip, fill=rcp),
                color="black", outlier.shape = NA) +
   labs(title = "Projected Annual Precipitation", x = "Period", y = "Annual Precipitation (mm)") +
+  geom_hline(data=precip_annual_by_fp, aes(yintercept = precip_hist_annual), color="gray20") +
   scale_fill_discrete(name="RCP", labels = c("4.5","8.5")) +
   theme_bw()
+ggsave("output/precip_box_annual.jpg", width = 4, height = 3)
 
 # Changes in Precipitation
 ggplot() + 
   geom_boxplot(data=precip_annual_by_fp, aes(future_period, precip_annual_diff, fill=rcp),
                color="black", outlier.shape = NA) +
-  labs(title = "Changes in Annual Precipitation from Historical Baseline", x = "Period", y = "Change in Annual Precipitation (mm)") +
+  labs(title = "Projected Change in Annual Precipitation", x = "Period", y = "Change in Annual Precipitation (mm)") +
   geom_hline(yintercept = 0) +
   scale_fill_discrete(name="RCP", labels = c("4.5","8.5")) +
   theme_bw()
+ggsave("output/precip_box_annual_delta.jpg", width = 4, height = 3)
 
+# Baseline annual precipitation values
+precip_annual_by_fp %>% 
+  summarise(mean = mean(precip_hist_annual))
 
 
 # ---------------------------------------------------------------------
@@ -164,18 +170,18 @@ ggplot() +
   scale_fill_discrete(name="RCP", labels = c("4.5","8.5")) +
   facet_wrap(~month, labeller = as_labeller(month_id)) +
   theme_bw()
-
+ggsave("output/precip_box_monthly.jpg", width = 8, height = 6)
 
 # Change in monthly precipitation
 ggplot() + 
   geom_boxplot(data=precip_month_by_fp, aes(future_period, precip_monthly_diff, fill=rcp),
                color="black", outlier.shape = NA) +
-  labs(title = "Changes in Monthly Precipitation from Historical Baseline", x = "Period", y = "Change in Monthly Precipitation (mm)") +
+  labs(title = "Projected Change in Monthly Precipitation", x = "Period", y = "Change in Monthly Precipitation (mm)") +
   geom_hline(yintercept = 0) +
   scale_fill_discrete(name="RCP", labels = c("4.5","8.5")) +
   facet_wrap(~month, labeller = as_labeller(month_id)) +
   theme_bw()
-
+ggsave("output/precip_box_monthly_delta.jpg", width = 8, height = 6)
 
 # ---------------------------------------------------------------------
 # Box plot by time-periods (Seasonal)
@@ -195,18 +201,18 @@ ggplot() +
   scale_fill_discrete(name="RCP", labels = c("4.5","8.5")) +
   facet_wrap(~season, labeller = as_labeller(season_id)) +
   theme_bw()
-
+ggsave("output/precip_box_seasonal.jpg", width = 5, height = 4)
 
 # Change in Seasonal Precipitation 
 ggplot() + 
   geom_boxplot(data=precip_season_by_fp, aes(future_period, precip_seasonal_diff, fill=rcp),
                color="black", outlier.shape = NA) +
-  labs(title = "Changes in Seasonal Precipitation from Historical Baseline", x = "Period", y = "Change in Seasonal Precipitation (mm)") +
+  labs(title = "Projected Change in Seasonal Precipitation", x = "Period", y = "Change in Seasonal Precipitation (mm)") +
   geom_hline(yintercept = 0) +
   scale_fill_discrete(name="RCP", labels = c("4.5","8.5")) +
   facet_wrap(~season, labeller = as_labeller(season_id)) +
   theme_bw()
-
+ggsave("output/precip_box_seasonal_delta.jpg", width = 5, height = 4)
 
 
 # ---------------------------------------------------------------------
@@ -220,6 +226,32 @@ ggplot() +
   geom_line(data=happy, aes(x=month,y=month_precip, color=future_period)) +
   facet_grid(rcp~.)
 
+
+# ---------------------------------------------------------------------
+# Table (Historical plus 30-year change groupings)
+
+library(knitr)
+library(kableExtra)
+
+# 
+precip_annual_by_fp %>% 
+  group_by(precip_var,rcp,future_period) %>% 
+  summarize(precip_annual_diff_period = mean(precip_annual_diff))
+
+
+precip_month_by_fp %>% 
+  group_by(precip_var,rcp,future_period, month) %>% 
+  summarize(precip_month_diff_period = mean(precip_monthly_diff)) %>%
+  unite(rcp_period, rcp, future_period) %>% 
+  spread(key = rcp_period, value = precip_month_diff_period)
+#rename columns
+
+precip_season_by_fp %>% 
+  group_by(precip_var,rcp,future_period, season) %>% 
+  summarize(precip_season_diff_period = median(precip_seasonal_diff)) %>%
+  unite(rcp_period, rcp, future_period) %>% 
+  spread(key = rcp_period, value = precip_season_diff_period)
+#rename columns
 
 
 

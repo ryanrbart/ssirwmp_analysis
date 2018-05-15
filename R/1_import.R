@@ -8,6 +8,7 @@ source("R/0_utilities.R")
 # Define projection
 
 proj_longlat <- "+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"
+proj_prism <- "+proj=longlat +datum=NAD83 +no_defs +ellps=GRS80 +towgs84=0,0,0"
 
 # ---------------------------------------------------------------------
 # Import SSIRWMG Boundary
@@ -205,25 +206,108 @@ ss_mort_2017 <- st_intersection(mort_2017, ss_border)
 
 
 # ---------------------------------------------------------------------
+# Import Young mortality data
+
+albers.proj <- CRS("+proj=aea +lat_1=34 +lat_2=40.5 +lat_0=0 +lon_0=-120 +x_0=0 +y_0=-4000000 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+
+# Function to convert data frame to spatial data
+filter_rasterize=function(data, year, layer){
+  data <- dplyr::filter(data, year==year)
+  coordinates(data) = ~alb.x + alb.y
+  gridded(data) = T
+  r <- raster(data,layer=layer)
+  return(r)
+}
+
+# Import data
+young <- read_csv("data/forest_service_mortality/young2017_data/Young_et_al_Data.csv")
+
+y_15_live.bah <- filter_rasterize(data=young, year=2015, layer="live.bah")
+y_15_live.tph <- filter_rasterize(data=young, year=2015, layer="live.tph")
+y_15_mort.bin <- filter_rasterize(data=young, year=2015, layer="mort.bin")
+y_15_mort.tph <- filter_rasterize(data=young, year=2015, layer="mort.tph")
+y_15_Defnorm <- filter_rasterize(data=young, year=2015, layer="Defnorm")
+y_15_Def0 <- filter_rasterize(data=young, year=2015, layer="Def0")
+y_15_Defz0 <- filter_rasterize(data=young, year=2015, layer="Defz0")
+y_15_Defquant <- filter_rasterize(data=young, year=2015, layer="Defquant")
+
+y_15 <- stack(y_15_live.bah,y_15_live.tph,y_15_mort.bin,y_15_mort.tph,
+              y_15_Defnorm,y_15_Def0,y_15_Defz0,y_15_Defquant)
+
+# Assign projection (Albers (meter units))
+proj4string(y_15) <- CRS("+init=epsg:3310") 
+
+# Reproject, resample and set new extent
+y_15 <- spatial_sync_raster(y_15,temp_hist[[1]],method="bilinear")
+
+#plot(y_15[[1]])
+
+# ---------------------------------------------------------------------
+# Import PRISM Data
+
+# Safeeq's datasets
+a <- raster("data/cwd/PRISM_ppt_minus_pet_stable_4kmM2_198001.tif")
+b <- raster("data/cwd/pet_2013.tif")
+c <- raster("data/cwd/ppt_minus_pet_2015.tif")
+
+# PRISM monthly precipitation - 2015
+# prism_precip_2015 = raster("data/cwd/PRISM_ppt_stable_4kmM3_2015_all_asc/PRISM_ppt_stable_4kmM3_201501_asc.asc")
+precip_file_stack <- list.files(path="data/cwd/PRISM_ppt_stable_4kmM3_2015_all_asc/", pattern = "PRISM_ppt_stable_4kmM3_2015", full.names = TRUE)
+prism_precip_stack = stack(precip_file_stack)
+proj4string(prism_precip_stack) <- proj_prism
+# Reproject, resample and set new extent
+prism_precip_stack <- spatial_sync_raster(prism_precip_stack,temp_hist[[1]],method="bilinear")
+
+# PRISM monthly mean temperature - 2015
+#prism_temp_2015 = raster("data/cwd/PRISM_tmean_stable_4kmM2_2015_all_asc/PRISM_tmean_stable_4kmM2_201501_asc.asc")
+temp_file_stack <- list.files(path="data/cwd/PRISM_tmean_stable_4kmM2_2015_all_asc/", pattern = "PRISM_tmean_stable_4kmM2_2015", full.names = TRUE)
+prism_temp_stack = stack(temp_file_stack)
+proj4string(prism_temp_stack) <- proj_prism
+# Reproject, resample and set new extent
+prism_temp_stack <- spatial_sync_raster(prism_temp_stack,temp_hist[[1]],method="bilinear")
+
+# Generate PET
+# Hamon, W. R. Estimating potential evapotranspiration. J. Hydraul. Div. 87, 107–120 (1961)
+# Haith, Shoemaker GENERALIZED WATERSHED LOADING FUNCTIONS FOR STREAM FLOW NUTRIENTS
+# http://nest.su.se/mnode/Methods/penman.htm
+
+# e_sat - kPa
+e_sat <- 0.6108*exp((17.27*temp)/(237.3 + temp))
+
+# Generate mean monthly daylight hours in day
+daylight_hours = read_csv("data/cwd/daylight_hours_visalia.csv",
+                          col_types=cols(day=col_skip()),
+                          col_names = c("day","1","2","3","4","5","6",
+                                        "7","8","9","10","11","12"))
+daylight_hours <- daylight_hours %>% 
+  summarize_all(., funs(mean(., na.rm = TRUE))) %>% 
+  as_vector()/3600
+
+# PET - mm/day
+PET = (2.1 * (daylight_hours)^2 * e_sat)/(temp + 273.2)
+
+
+
+# ---------------------------------------------------------------------
 # Import Stream Temperature
 
 # Import data
 stream_lines <- st_read(dsn = "data/stream_temperature/", layer = "NorWeST_PredictedStreamTempLines_CentralCA")
-stream_points <- st_read(dsn = "data/stream_temperature/", layer = "NorWeST_PredictedStreamTempPoints_CentralCA")
+# stream_points <- st_read(dsn = "data/stream_temperature/", layer = "NorWeST_PredictedStreamTempPoints_CentralCA")
 
 # Reproject
 stream_lines <- st_transform(stream_lines, crs = proj_longlat)
-stream_points <- st_transform(stream_points, crs = proj_longlat)
+# stream_points <- st_transform(stream_points, crs = proj_longlat)
 
 # Subset by SS
 ss_stream_lines <- st_intersection(stream_lines, ss_border)
-ss_stream_points <- st_intersection(stream_points, ss_border)
+# ss_stream_points <- st_intersection(stream_points, ss_border)
 
 # Filter out non-valid data (Scenarios 37-41 have data when all others are -9999)
 ss_stream_lines <- ss_stream_lines %>% 
   dplyr::filter(S1_93_11 != -9999.00)
-ss_stream_points <- ss_stream_points %>% 
-  dplyr::filter(S1_93_11 != -9999.00)
+# ss_stream_points <- ss_stream_points %>% 
+#   dplyr::filter(S1_93_11 != -9999.00)
 
 
 # ---------------------------------------------------------------------
@@ -247,7 +331,7 @@ snow  <- projectRaster(snow, crs = proj_longlat)
 snow <- crop(snow, e)
 
 # Resample
-snow <- resample(snow, tmax_45, method='ngb')
+snow <- resample(snow, temp_hist[[1]], method='ngb')
 
 # Null out raster areas outside of ss border
 snow[is.na(ss_border_rast) == TRUE] <- NA

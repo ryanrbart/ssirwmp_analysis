@@ -17,6 +17,7 @@ library(rgdal)
 library(fasterize)
 library(rasterVis)
 library(plotKML)
+library(spatial.tools)
 
 # ---------------------------------------------------------------------
 # Files and Directories

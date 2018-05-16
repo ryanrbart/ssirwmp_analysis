@@ -85,6 +85,7 @@ temp_annual <- temp_tib_final %>%
   group_by(temp_var, rcp, gcm, year, future_period) %>% 
   summarise(temp = mean(temp), temp_hist_annual=mean(temp_hist_annual)) %>% 
   mutate(temp_annual_diff = temp-temp_hist_annual)
+# Produce summarized annual data by future period
 temp_annual_by_fp <- temp_annual %>% 
   group_by(temp_var, rcp, gcm, future_period) %>% 
   summarise(temp = mean(temp), temp_hist_annual=mean(temp_hist_annual),
@@ -96,9 +97,10 @@ temp_annual_by_fp_max <- dplyr::filter(temp_annual_by_fp, temp_var == "tmax")
 temp_annual_by_fp_min <- dplyr::filter(temp_annual_by_fp, temp_var == "tmin")
 
 
-# Produce summarized monthly data
+# Produce summarized monthly data by year
 temp_month <- temp_tib_final %>% 
   mutate(temp_monthly_diff = temp-temp_hist_month)
+# Produce summarized monthly data by future period
 temp_month_by_fp <- temp_month %>% 
   group_by(temp_var, rcp, gcm, month, future_period) %>% 
   summarise(temp = mean(temp), temp_hist_month=mean(temp_hist_month),
@@ -110,11 +112,12 @@ temp_month_by_fp_max <- dplyr::filter(temp_month_by_fp, temp_var == "tmax")
 temp_month_by_fp_min <- dplyr::filter(temp_month_by_fp, temp_var == "tmin")
 
 
-# Produce summarized seasonal data
+# Produce summarized seasonal data by year
 temp_season <- temp_tib_final %>% 
   group_by(temp_var, rcp, gcm, year, season, future_period) %>% 
   summarise(temp = mean(temp), temp_hist_season = mean(temp_hist_season)) %>% 
   mutate(temp_seasonal_diff = temp-temp_hist_season)
+# Produce summarized seasonal data by future period
 temp_season_by_fp <- temp_season %>% 
   group_by(temp_var, rcp, gcm, season, future_period) %>% 
   summarise(temp = mean(temp), temp_hist_season=mean(temp_hist_season),

@@ -83,11 +83,12 @@ precip_tib_final <- precip_proj_tib %>%
 
 # ----
 
-# Produce summarized annual data
+# Produce summarized annual data by year
 precip_annual <- precip_tib_final %>% 
   group_by(precip_var, rcp, gcm, year, future_period) %>% 
   summarise(precip = sum(precip), precip_hist_annual = sum(precip_hist_annual)) %>% 
   mutate(precip_annual_diff = precip-precip_hist_annual)
+# Produce summarized annual data by future period
 precip_annual_by_fp <- precip_annual %>% 
   group_by(precip_var, rcp, gcm, future_period) %>% 
   summarise(precip = mean(precip), precip_hist_annual=mean(precip_hist_annual),
@@ -96,6 +97,7 @@ precip_annual_by_fp <- precip_annual %>%
 # Produce summarized monthly data
 precip_month <- precip_tib_final %>% 
   mutate(precip_monthly_diff = precip-precip_hist_month)
+# Produce summarized monthly data by future period
 precip_month_by_fp <- precip_month %>% 
   group_by(precip_var, rcp, gcm, month, future_period) %>% 
   summarise(precip = mean(precip), precip_hist_month=mean(precip_hist_month),
@@ -106,6 +108,7 @@ precip_season <- precip_tib_final %>%
   group_by(precip_var, rcp, gcm, year, season, future_period) %>% 
   summarise(precip = sum(precip), precip_hist_season = sum(precip_hist_season)) %>% 
   mutate(precip_seasonal_diff = precip-precip_hist_season)
+# Produce summarized seasonal data by future period
 precip_season_by_fp <- precip_season %>% 
   group_by(precip_var, rcp, gcm, season, future_period) %>% 
   summarise(precip = mean(precip), precip_hist_season=mean(precip_hist_season),
@@ -252,6 +255,98 @@ precip_season_by_fp %>%
   unite(rcp_period, rcp, future_period) %>% 
   spread(key = rcp_period, value = precip_season_diff_period)
 #rename columns
+
+
+# ---------------------------------------------------------------------
+# Spatial Plots
+
+# ----
+# Process precipitation data
+
+# Isolate only late century layers (2070-2099)
+precip_proj_map_2070_2099 <- map(precip_proj_map,function(x)raster::subset(x, 769:1128))
+
+# Generates mean annual precipitation (mm) 
+map_precip_hist_ccsm4 <- calc(precip_hist_map$p_hist_ccsm4, function(x)sum(x)/56) # Dividing by number of years in dataset
+map_precip_45_ccsm4 <- calc(precip_proj_map_2070_2099$p_45_ccsm4, function(x)sum(x)/30)
+map_precip_85_ccsm4 <- calc(precip_proj_map_2070_2099$p_85_ccsm4, function(x)sum(x)/30)
+
+# Precipitation 
+# Tidy the rasters so maps can be plotted
+map_precip_ccsm4_stack <- stack(map_precip_hist_ccsm4,map_precip_45_ccsm4,map_precip_85_ccsm4)
+names(map_precip_ccsm4_stack) =  c("map_precip_1hist_ccsm4","map_precip_45_ccsm4","map_precip_85_ccsm4")
+map_precip_ccsm4_p <- rasterToPoints(map_precip_ccsm4_stack)
+map_precip_ccsm4_tib <- as_tibble(map_precip_ccsm4_p)
+map_precip_ccsm4 <- gather(map_precip_ccsm4_tib, key="layer", value="precip",
+                         "map_precip_1hist_ccsm4","map_precip_45_ccsm4","map_precip_85_ccsm4")
+map_precip_ccsm4 <- mutate(map_precip_ccsm4, 
+                           precip_interval = cut_interval(precip,n=9,
+                                                          breaks = c(100,300,500,700,900,
+                                                                     1100,1300,1500,1700,1900),
+                                                          labels = c("100-300","300-500","500-700",
+                                                                     "700-900","900-1100","1100-1300",
+                                                                     "1300-1500","1500-1700","1700-1900")))
+
+# Create labels for facetting
+precip_id <- c(
+  `map_precip_1hist_ccsm4` = "Historical",
+  `map_precip_45_ccsm4` = "End of Century (RCP4.5)",
+  `map_precip_85_ccsm4` = "End of Century (RCP8.5)"
+)
+
+
+# ----
+# Plot Precipitation
+
+# Precipitation - Continuous
+x <- ggplot() +
+  geom_raster(data=map_precip_ccsm4,aes(x=x,y=y, fill=precip)) +
+  geom_sf(data=ss_border, fill=NA, col="white") +
+  scale_fill_continuous(low="red", high="blue", name="Precipitation (mm)") +
+  scale_x_continuous(expand=c(0,0)) +   # This eliminates margin buffer around plot
+  scale_y_continuous(expand=c(0,0)) +   # This eliminates margin buffer around plot
+  labs(title="Mean Annual Precipitation", x="Longitude",y="Latitude", size=0.5) +
+  theme_classic(base_size =12) +
+  geom_point(data = dplyr::filter(cities, name != 'Fresno'), aes(x = lon, y = lat), 
+             shape = 19, color = "black", fill = "grey50", size = 1.2) +
+  geom_text(data = dplyr::filter(cities, name == 'Visalia'), 
+            aes(x = lon, y = lat, label = paste("  ", as.character(name), sep="")), 
+            size=3, angle = 0, vjust= -0.85, hjust = 0.95, color = "black") +
+  geom_text(data = dplyr::filter(cities, name == 'Porterville'), 
+            aes(x = lon, y = lat, label = paste("  ", as.character(name), sep="")), 
+            size=3, angle = 0, vjust= -0.85, hjust = 1.1, color = "black") +
+  geom_text(data = dplyr::filter(cities, name == 'Bishop'), 
+            aes(x = lon, y = lat, label = paste("  ", as.character(name), sep="")), 
+            size=3, angle = 0, vjust= -0.85, hjust = 0.95, color = "black") +
+  facet_grid(.~layer, labeller = as_labeller(precip_id)) +
+  theme(legend.position = "bottom")
+plot(x)
+
+
+# Precipitation - Discrete
+x <- ggplot() +
+  geom_raster(data=map_precip_ccsm4,aes(x=x,y=y, fill=precip_interval)) +
+  geom_sf(data=ss_border, fill=NA, col="white") +
+  scale_fill_brewer(palette = "RdBu", name="Precipitation (mm)",
+                    labels=scales::comma) +
+  scale_x_continuous(expand=c(0,0)) +   # This eliminates margin buffer around plot
+  scale_y_continuous(expand=c(0,0)) +   # This eliminates margin buffer around plot
+  labs(title="Mean Annual Precipitation", x="Longitude",y="Latitude", size=0.5) +
+  theme_classic(base_size =12) +
+  geom_point(data = dplyr::filter(cities, name != 'Fresno'), aes(x = lon, y = lat), 
+             shape = 19, color = "black", fill = "grey50", size = 1.2) +
+  geom_text(data = dplyr::filter(cities, name == 'Visalia'), 
+            aes(x = lon, y = lat, label = paste("  ", as.character(name), sep="")), 
+            size=3, angle = 0, vjust= -0.85, hjust = 0.95, color = "black") +
+  geom_text(data = dplyr::filter(cities, name == 'Porterville'), 
+            aes(x = lon, y = lat, label = paste("  ", as.character(name), sep="")), 
+            size=3, angle = 0, vjust= -0.85, hjust = 1.1, color = "black") +
+  geom_text(data = dplyr::filter(cities, name == 'Bishop'), 
+            aes(x = lon, y = lat, label = paste("  ", as.character(name), sep="")), 
+            size=3, angle = 0, vjust= -0.85, hjust = 0.95, color = "black") +
+  facet_grid(.~layer, labeller = as_labeller(precip_id)) +
+  theme(legend.position = "bottom")
+plot(x)
 
 
 

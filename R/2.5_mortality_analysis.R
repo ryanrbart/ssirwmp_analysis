@@ -70,18 +70,33 @@ names(cwd_2085) <- "cwd_2085"
 
 happy_tib <- as_tibble(values(stack(y_15, precip_2015, pet_2015, pet_2085, cwd_2015, cwd_2085)))
 
-happy_tib_0 <- happy_tib %>% 
-  dplyr::filter(mort.tph>0)
+happy_tib <- happy_tib %>% 
+  dplyr::filter(mort.tph<5)
 
-ggplot() +
-  geom_point(data = happy_tib_0, aes(x=cwd_2015,y=live.bah, color=mort.tph)) +
+# -----
+# Young 'equivalent' plot
+
+#test <- function(x)(x*.063+34)
+test <- function(x)(0.00004*((x+900)^2))
+
+ggplot(data = happy_tib,aes(x=cwd_2015,y=live.bah)) +
+  geom_point(aes(color=mort.tph)) +
   scale_color_gradient(low="yellow", high="black") +
-  xlim(-850,250)
+  xlim(-850,250) +
+  #ylim(0,60) +
+  stat_function(fun=test)
+
+ggplot(data = happy_tib,aes(x=cwd_2085,y=live.bah)) +
+  geom_point(aes(color=mort.tph)) +
+  scale_color_gradient(low="yellow", high="black") +
+  xlim(-850,250) +
+  ylim(0,60) +
+  stat_function(fun=test)
 
 
 
-
-
+sum(happy_tib$live.bah > test(happy_tib$cwd_2015), na.rm = TRUE)
+sum(happy_tib$live.bah > test(happy_tib$cwd_2085), na.rm = TRUE)
 
 
 

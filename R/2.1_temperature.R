@@ -127,7 +127,7 @@ temp_season_by_fp_min <- dplyr::filter(temp_season_by_fp, temp_var == "tmin")
 
 
 # ---------------------------------------------------------------------
-# Time-series
+# Time-series figures
 
 # Annual
 ggplot() +
@@ -152,7 +152,7 @@ temp_id <- c(
 ggplot() + 
   geom_boxplot(data=temp_annual_by_fp_max, aes(future_period, temp, fill=rcp),
                color="black") +
-  labs(title = "Projected Maximum Annual Temperatures", x = "Period", y = expression('Temperature'~'('~degree*'C)')) +
+  labs(title = "Projected Maximum Annual Temperatures", x = "Period", y = expression('Temperature'~'('*degree*'C)')) +
   scale_fill_discrete(name="RCP", labels = c("4.5","8.5")) +
   theme_bw()
 ggsave("output/box_annual_max.jpg", width = 4, height = 3)
@@ -162,7 +162,7 @@ ggsave("output/box_annual_max.jpg", width = 4, height = 3)
 ggplot() + 
   geom_boxplot(data=temp_annual_by_fp_min, aes(future_period, temp, fill=rcp),
                color="black") +
-  labs(title = "Projected Minimum Annual Temperatures", x = "Period", y = expression('Temperature'~'('~degree*'C)')) +
+  labs(title = "Projected Minimum Annual Temperatures", x = "Period", y = expression('Temperature'~'('*degree*'C)')) +
   scale_fill_discrete(name="RCP", labels = c("4.5","8.5")) +
   theme_bw()
 ggsave("output/box_annual_min.jpg", width = 4, height = 3)
@@ -172,7 +172,7 @@ ggsave("output/box_annual_min.jpg", width = 4, height = 3)
 ggplot() + 
   geom_boxplot(data=temp_annual_by_fp, aes(future_period, temp_annual_diff, fill=rcp),
                color="black", outlier.shape = NA) +
-  labs(title = "Projected Change in Annual Temperatures", x = "Period", y = expression('Change'~'in'~'Temperature'~'('~degree*'C)')) +
+  labs(title = "Projected Change in Annual Temperatures", x = "Period", y = expression('Change'~'in'~'Temperature'~'('*degree*'C)')) +
   geom_hline(yintercept = 0) +
   scale_fill_discrete(name="RCP", labels = c("4.5","8.5")) +
   facet_grid(.~temp_var, labeller = as_labeller(temp_id)) +
@@ -199,7 +199,7 @@ month_id <- c(
 ggplot() + 
   geom_boxplot(data=temp_month_by_fp_max, aes(future_period, temp, fill=rcp),
                color="black", outlier.shape = NA) +
-  labs(title = "Projected Maximum Monthly Temperatures", x = "Period", y = expression('Temperature'~'('~degree*'C)')) +
+  labs(title = "Projected Maximum Monthly Temperatures", x = "Period", y = expression('Temperature'~'('*degree*'C)')) +
   scale_fill_discrete(name="RCP", labels = c("4.5","8.5")) +
   facet_wrap(~month, labeller = as_labeller(month_id)) +
   theme_bw()
@@ -209,7 +209,7 @@ ggsave("output/box_monthly_max.jpg", width = 8, height = 6)
 ggplot() + 
   geom_boxplot(data=temp_month_by_fp_min, aes(future_period, temp, fill=rcp),
                color="black", outlier.shape = NA) +
-  labs(title = "Projected Minimum Monthly Temperatures", x = "Period", y = expression('Temperature'~'('~degree*'C)')) +
+  labs(title = "Projected Minimum Monthly Temperatures", x = "Period", y = expression('Temperature'~'('*degree*'C)')) +
   scale_fill_discrete(name="RCP", labels = c("4.5","8.5")) +
   facet_wrap(~month, labeller = as_labeller(month_id)) +
   theme_bw()
@@ -219,7 +219,7 @@ ggsave("output/box_monthly_min.jpg", width = 8, height = 6)
 ggplot() + 
   geom_boxplot(data=temp_month_by_fp_max, aes(future_period, temp_monthly_diff, fill=rcp),
                color="black", outlier.shape = NA) +
-  labs(title = "Projected Change in Maximum Monthly Temperatures", x = "Period", y = expression('Change'~'in'~'Temperature'~'('~degree*'C)')) +
+  labs(title = "Projected Change in Maximum Monthly Temperatures", x = "Period", y = expression('Change'~'in'~'Temperature'~'('*degree*'C)')) +
   geom_hline(yintercept = 0) +
   scale_fill_discrete(name="RCP", labels = c("4.5","8.5")) +
   facet_wrap(~month, labeller = as_labeller(month_id)) +
@@ -230,7 +230,7 @@ ggsave("output/box_monthly_max_delta.jpg", width = 8, height = 6)
 ggplot() + 
   geom_boxplot(data=temp_month_by_fp_min, aes(future_period, temp_monthly_diff, fill=rcp),
                color="black", outlier.shape = NA) +
-  labs(title = "Projected Change in Minimum Monthly Temperatures", x = "Period", y = expression('Change'~'in'~'Temperature'~'('~degree*'C)')) +
+  labs(title = "Projected Change in Minimum Monthly Temperatures", x = "Period", y = expression('Change'~'in'~'Temperature'~'('*degree*'C)')) +
   geom_hline(yintercept = 0) +
   scale_fill_discrete(name="RCP", labels = c("4.5","8.5")) +
   facet_wrap(~month, labeller = as_labeller(month_id)) +
@@ -251,7 +251,7 @@ season_id <- c(
 ggplot() + 
   geom_boxplot(data=temp_season_by_fp_max, aes(future_period, temp, fill=rcp),
                color="black", outlier.shape = NA) +
-  labs(title = "Projected Maximum Seasonal Temperatures", x = "Period", y = expression('Temperature'~'('~degree*'C)')) +
+  labs(title = "Projected Maximum Seasonal Temperatures", x = "Period", y = expression('Temperature'~'('*degree*'C)')) +
   scale_fill_discrete(name="RCP", labels = c("4.5","8.5")) +
   facet_wrap(~season, labeller = as_labeller(season_id)) +
   theme_bw()
@@ -261,7 +261,7 @@ ggsave("output/box_seasonal_max.jpg", width = 5, height = 4)
 ggplot() + 
   geom_boxplot(data=temp_season_by_fp_min, aes(future_period, temp, fill=rcp),
                color="black", outlier.shape = NA) +
-  labs(title = "Projected Minimum Seasonal Temperatures", x = "Period", y = expression('Temperature'~'('~degree*'C)')) +
+  labs(title = "Projected Minimum Seasonal Temperatures", x = "Period", y = expression('Temperature'~'('*degree*'C)')) +
   scale_fill_discrete(name="RCP", labels = c("4.5","8.5")) +
   facet_wrap(~season, labeller = as_labeller(season_id)) +
   theme_bw()
@@ -271,7 +271,7 @@ ggsave("output/box_seasonal_min.jpg", width = 5, height = 4)
 ggplot() + 
   geom_boxplot(data=temp_season_by_fp_max, aes(future_period, temp_seasonal_diff, fill=rcp),
                color="black", outlier.shape = NA) +
-  labs(title = "Projected Change in Maximum Seasonal Temperatures", x = "Period", y = expression('Change'~'in'~'Temperature'~'('~degree*'C)')) +
+  labs(title = "Projected Change in Maximum Seasonal Temperatures", x = "Period", y = expression('Change'~'in'~'Temperature'~'('*degree*'C)')) +
   geom_hline(yintercept = 0) +
   scale_fill_discrete(name="RCP", labels = c("4.5","8.5")) +
   facet_wrap(~season, labeller = as_labeller(season_id)) +
@@ -282,7 +282,7 @@ ggsave("output/box_seasonal_max_delta.jpg", width = 5, height = 4)
 ggplot() + 
   geom_boxplot(data=temp_season_by_fp_min, aes(future_period, temp_seasonal_diff, fill=rcp),
                color="black", outlier.shape = NA) +
-  labs(title = "Projected Change in Minimum Seasonal Temperatures", x = "Period", y = expression('Change'~'in'~'Temperature'~'('~degree*'C)')) +
+  labs(title = "Projected Change in Minimum Seasonal Temperatures", x = "Period", y = expression('Change'~'in'~'Temperature'~'('*degree*'C)')) +
   geom_hline(yintercept = 0) +
   scale_fill_discrete(name="RCP", labels = c("4.5","8.5")) +
   facet_wrap(~season, labeller = as_labeller(season_id)) +
@@ -295,17 +295,15 @@ temp_season_by_fp %>%
   summarise(mean = mean(temp_hist_season))
 
 # ---------------------------------------------------------------------
-# Mean monthly temperatures
+# Mean monthly temperatures plot
 
-happy <- temp_month_by_fp_max %>% 
-  group_by(rcp,future_period,month) %>% 
-  summarize(month_temp=mean(temp))
-
-ggplot() +
-  geom_line(data=happy, aes(x=month,y=month_temp, color=future_period)) +
-  facet_grid(rcp~.)
-
-
+# happy <- temp_month_by_fp_max %>% 
+#   group_by(rcp,future_period,month) %>% 
+#   summarize(month_temp=mean(temp))
+# 
+# ggplot() +
+#   geom_line(data=happy, aes(x=month,y=month_temp, color=future_period)) +
+#   facet_grid(rcp~.)
 
 
 
@@ -340,24 +338,163 @@ temp_season_by_fp %>%
 # ---------------------------------------------------------------------
 # Spatial Plots
 
-par(mfrow=c(1,1)) 
-happy <- calc(temp_hist[[1]], mean)   # Generates long-term tmax 
+# ----
+# Process temperature data
 
-# Base
-#plot(happy)
-#plot(ss_border, add=TRUE, col=NA)
+# Isolate only late century layers (2070-2099)
+temp_proj_map_2070_2099 <- map(temp_proj_map,function(x)raster::subset(x, 769:1128))
 
-# ggplot
-happy_p <- rasterToPoints(happy)
-happy_tib <- as_tibble(happy_p)
+# Generates mean temperatures
+map_tmax_hist_ccsm4 <- calc(temp_hist_map$tmax_hist_ccsm4, mean)
+map_tmax_45_ccsm4 <- calc(temp_proj_map_2070_2099$tmax_45_ccsm4, mean)
+map_tmax_85_ccsm4 <- calc(temp_proj_map_2070_2099$tmax_85_ccsm4, mean)
+map_tmin_hist_ccsm4 <- calc(temp_hist_map$tmin_hist_ccsm4, mean) 
+map_tmin_45_ccsm4 <- calc(temp_proj_map_2070_2099$tmin_45_ccsm4, mean)
+map_tmin_85_ccsm4 <- calc(temp_proj_map_2070_2099$tmin_85_ccsm4, mean)
 
-ggplot() +
-  geom_raster(data=happy_tib,aes(x,y, fill=layer)) +
-  geom_sf(data=ss_border, fill=NA, col="white")
+# Maximum Temperature 
+# Tidy the rasters so maps can be plotted
+map_tmax_ccsm4_stack <- stack(map_tmax_hist_ccsm4,map_tmax_45_ccsm4,map_tmax_85_ccsm4)
+names(map_tmax_ccsm4_stack) =  c("map_tmax_1hist_ccsm4","map_tmax_45_ccsm4","map_tmax_85_ccsm4")
+map_tmax_ccsm4_p <- rasterToPoints(map_tmax_ccsm4_stack)
+map_tmax_ccsm4_tib <- as_tibble(map_tmax_ccsm4_p)
+map_tmax_ccsm4 <- gather(map_tmax_ccsm4_tib, key="layer", value="temp",
+                         "map_tmax_1hist_ccsm4","map_tmax_45_ccsm4","map_tmax_85_ccsm4")
+map_tmax_ccsm4 <- mutate(map_tmax_ccsm4, 
+                         temp_interval = cut_width(temp, width=3,
+                                                   center = .5))
+
+# Minimum Temperature
+# Tidy the rasters so maps can be plotted
+map_tmin_ccsm4_stack <- stack(map_tmin_hist_ccsm4,map_tmin_45_ccsm4,map_tmin_85_ccsm4)
+names(map_tmin_ccsm4_stack) =  c("map_tmin_1hist_ccsm4","map_tmin_45_ccsm4","map_tmin_85_ccsm4")
+map_tmin_ccsm4_p <- rasterToPoints(map_tmin_ccsm4_stack)
+map_tmin_ccsm4_tib <- as_tibble(map_tmin_ccsm4_p)
+map_tmin_ccsm4 <- gather(map_tmin_ccsm4_tib, key="layer", value="temp",
+                         "map_tmin_1hist_ccsm4","map_tmin_45_ccsm4","map_tmin_85_ccsm4")
+map_tmin_ccsm4 <- mutate(map_tmin_ccsm4, 
+                         temp_interval = cut_width(temp, width=3,
+                                                   center = .5))
+
+# Create labels for facetting
+tmax_id <- c(
+  `map_tmax_1hist_ccsm4` = "Historical",
+  `map_tmax_45_ccsm4` = "End of Century (RCP4.5)",
+  `map_tmax_85_ccsm4` = "End of Century (RCP8.5)"
+)
+
+tmin_id <- c(
+  `map_tmin_1hist_ccsm4` = "Historical",
+  `map_tmin_45_ccsm4` = "End of Century (RCP4.5)",
+  `map_tmin_85_ccsm4` = "End of Century (RCP8.5)"
+)
 
 
+# ----
+# Plot temperatures
+
+# Maximum Temperature - Continuous
+x <- ggplot() +
+  geom_raster(data=map_tmax_ccsm4,aes(x=x,y=y, fill=temp)) +
+  geom_sf(data=ss_border, fill=NA, col="white") +
+  scale_fill_continuous(low="blue", high="red", name=expression('Temperature'~'('*degree*'C)')) +
+  scale_x_continuous(expand=c(0,0)) +   # This eliminates margin buffer around plot
+  scale_y_continuous(expand=c(0,0)) +   # This eliminates margin buffer around plot
+  labs(title="Mean Annual Maximum Air Temperature", x="Longitude",y="Latitude", size=0.5) +
+  theme_classic(base_size =12) +
+  geom_point(data = dplyr::filter(cities, name != 'Fresno'), aes(x = lon, y = lat), 
+             shape = 19, color = "black", fill = "grey50", size = 1.2) +
+  geom_text(data = dplyr::filter(cities, name == 'Visalia'), 
+            aes(x = lon, y = lat, label = paste("  ", as.character(name), sep="")), 
+            size=3, angle = 0, vjust= -0.85, hjust = 0.95, color = "black") +
+  geom_text(data = dplyr::filter(cities, name == 'Porterville'), 
+            aes(x = lon, y = lat, label = paste("  ", as.character(name), sep="")), 
+            size=3, angle = 0, vjust= -0.85, hjust = 1.1, color = "black") +
+  geom_text(data = dplyr::filter(cities, name == 'Bishop'), 
+            aes(x = lon, y = lat, label = paste("  ", as.character(name), sep="")), 
+            size=3, angle = 0, vjust= -0.85, hjust = 0.95, color = "black") +
+  facet_grid(.~layer, labeller = as_labeller(tmax_id)) +
+  theme(legend.position = "bottom")
+plot(x)
+
+
+# Maximum Temperature - Discrete
+x <- ggplot() +
+  geom_raster(data=map_tmax_ccsm4,aes(x=x,y=y, fill=temp_interval)) +
+  geom_sf(data=ss_border, fill=NA, col="white") +
+  scale_fill_brewer(palette = "RdBu", direction=-1, name=expression('Temperature'~'('*degree*'C)')) +
+  scale_x_continuous(expand=c(0,0)) +   # This eliminates margin buffer around plot
+  scale_y_continuous(expand=c(0,0)) +   # This eliminates margin buffer around plot
+  labs(title="Mean Annual Maximum Air Temperature", x="Longitude",y="Latitude", size=0.5) +
+  theme_classic(base_size =12) +
+  geom_point(data = dplyr::filter(cities, name != 'Fresno'), aes(x = lon, y = lat), 
+             shape = 19, color = "black", fill = "grey50", size = 1.2) +
+  geom_text(data = dplyr::filter(cities, name == 'Visalia'), 
+            aes(x = lon, y = lat, label = paste("  ", as.character(name), sep="")), 
+            size=3, angle = 0, vjust= -0.85, hjust = 0.95, color = "black") +
+  geom_text(data = dplyr::filter(cities, name == 'Porterville'), 
+            aes(x = lon, y = lat, label = paste("  ", as.character(name), sep="")), 
+            size=3, angle = 0, vjust= -0.85, hjust = 1.1, color = "black") +
+  geom_text(data = dplyr::filter(cities, name == 'Bishop'), 
+            aes(x = lon, y = lat, label = paste("  ", as.character(name), sep="")), 
+            size=3, angle = 0, vjust= -0.85, hjust = 0.95, color = "black") +
+  facet_grid(.~layer, labeller = as_labeller(tmax_id)) +
+  theme(legend.position = "bottom")
+plot(x)
+
+
+# Minimum Temperature - Continuous
+x <- ggplot() +
+  geom_raster(data=map_tmin_ccsm4,aes(x=x,y=y, fill=temp)) +
+  geom_sf(data=ss_border, fill=NA, col="white") +
+  scale_fill_continuous(low="blue", high="red", name=expression('Temperature'~'('*degree*'C)')) +
+  scale_x_continuous(expand=c(0,0)) +   # This eliminates margin buffer around plot
+  scale_y_continuous(expand=c(0,0)) +   # This eliminates margin buffer around plot
+  labs(title="Mean Annual Minimum Air Temperature", x="Longitude",y="Latitude", size=0.5) +
+  theme_classic(base_size =12) +
+  geom_point(data = dplyr::filter(cities, name != 'Fresno'), aes(x = lon, y = lat), 
+             shape = 19, color = "black", fill = "grey50", size = 1.2) +
+  geom_text(data = dplyr::filter(cities, name == 'Visalia'), 
+            aes(x = lon, y = lat, label = paste("  ", as.character(name), sep="")), 
+            size=3, angle = 0, vjust= -0.85, hjust = 0.95, color = "black") +
+  geom_text(data = dplyr::filter(cities, name == 'Porterville'), 
+            aes(x = lon, y = lat, label = paste("  ", as.character(name), sep="")), 
+            size=3, angle = 0, vjust= -0.85, hjust = 1.1, color = "black") +
+  geom_text(data = dplyr::filter(cities, name == 'Bishop'), 
+            aes(x = lon, y = lat, label = paste("  ", as.character(name), sep="")), 
+            size=3, angle = 0, vjust= -0.85, hjust = 0.95, color = "black") +
+  facet_grid(.~layer, labeller = as_labeller(tmin_id)) +
+  theme(legend.position = "bottom")
+plot(x)
+
+
+# Minimum Temperature - Discrete
+x <- ggplot() +
+  geom_raster(data=map_tmin_ccsm4,aes(x=x,y=y, fill=temp_interval)) +
+  geom_sf(data=ss_border, fill=NA, col="white") +
+  scale_fill_brewer(palette = "RdBu", direction=-1, name=expression('Temperature'~'('*degree*'C)')) +
+  scale_x_continuous(expand=c(0,0)) +   # This eliminates margin buffer around plot
+  scale_y_continuous(expand=c(0,0)) +   # This eliminates margin buffer around plot
+  labs(title="Mean Annual Minimum Air Temperature", x="Longitude",y="Latitude", size=0.5) +
+  theme_classic(base_size =12) +
+  geom_point(data = dplyr::filter(cities, name != 'Fresno'), aes(x = lon, y = lat), 
+             shape = 19, color = "black", fill = "grey50", size = 1.2) +
+  geom_text(data = dplyr::filter(cities, name == 'Visalia'), 
+            aes(x = lon, y = lat, label = paste("  ", as.character(name), sep="")), 
+            size=3, angle = 0, vjust= -0.85, hjust = 0.95, color = "black") +
+  geom_text(data = dplyr::filter(cities, name == 'Porterville'), 
+            aes(x = lon, y = lat, label = paste("  ", as.character(name), sep="")), 
+            size=3, angle = 0, vjust= -0.85, hjust = 1.1, color = "black") +
+  geom_text(data = dplyr::filter(cities, name == 'Bishop'), 
+            aes(x = lon, y = lat, label = paste("  ", as.character(name), sep="")), 
+            size=3, angle = 0, vjust= -0.85, hjust = 0.95, color = "black") +
+  facet_grid(.~layer, labeller = as_labeller(tmin_id)) +
+  theme(legend.position = "bottom")
+plot(x)
 
 
 
 # ---------------------------------------------------------------------
 # 
+
+

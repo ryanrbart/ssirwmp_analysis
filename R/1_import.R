@@ -22,6 +22,10 @@ e <- extent(ss_border_sp)
 # Generate kml
 #kml(ss_border_sp, file.name = "data/kml/ssrwmg.kml")
 
+# Nearby cities
+# Read in site data
+cities <- read.table("data/ssirwmp_gis/ssirwmp_cities.txt", sep = ",", header = TRUE)
+
 # ---------------------------------------------------------------------
 # Import MACA (Temperature and Precipitation)
 
@@ -154,12 +158,18 @@ temp_proj <- map(temp_proj, chg_x_coord_temp_units)
 precip_hist <- map(precip_hist, chg_x_coord)
 precip_proj <- map(precip_proj, chg_x_coord)
 
+# Temperature and precipitation data for maps
+temp_hist_map <- temp_hist
+temp_proj_map <- temp_proj
+precip_hist_map <- precip_hist
+precip_proj_map <- precip_proj
 
 # ------
+# Temperature and precipitation data for analysis
 # Null out raster areas outside of ss border
 ss_border_rast <- rasterize(ss_border_sp, precip_hist[[1]])
 
-# For loop instead of MAP cause I can't figure out how to rework embedded function to not contain <-
+# Using a for loop instead of purrr::MAP cause I can't figure out how to rework embedded function to not contain <-
 for (aa in seq_along(temp_hist)){
   temp_hist[[aa]][is.na(ss_border_rast) == TRUE] <- NA
 }
@@ -245,34 +255,27 @@ y_15 <- spatial_sync_raster(y_15,temp_hist[[1]],method="bilinear")
 # ---------------------------------------------------------------------
 # Import PRISM Data
 
-# Safeeq's datasets
-a <- raster("data/cwd/PRISM_ppt_minus_pet_stable_4kmM2_198001.tif")
-b <- raster("data/cwd/pet_2013.tif")
-c <- raster("data/cwd/ppt_minus_pet_2015.tif")
+# PRISM monthly precipitation - WY2015
 
-# PRISM monthly precipitation - 2015
-# prism_precip_2015 = raster("data/cwd/PRISM_ppt_stable_4kmM3_2015_all_asc/PRISM_ppt_stable_4kmM3_201501_asc.asc")
-precip_file_stack <- list.files(path="data/cwd/PRISM_ppt_stable_4kmM3_2015_all_asc/", pattern = "PRISM_ppt_stable_4kmM3_2015", full.names = TRUE)
+precip_file_stack <- list.files(path="data/cwd/PRISM_ppt_stable_4kmM3_2015_all_asc/", pattern = "PRISM_ppt_stable_4kmM3_201", full.names = TRUE)
 prism_precip_stack = stack(precip_file_stack)
+# Assign prism projection
 proj4string(prism_precip_stack) <- proj_prism
 # Reproject, resample and set new extent
 prism_precip_stack <- spatial_sync_raster(prism_precip_stack,temp_hist[[1]],method="bilinear")
 
-# PRISM monthly mean temperature - 2015
-#prism_temp_2015 = raster("data/cwd/PRISM_tmean_stable_4kmM2_2015_all_asc/PRISM_tmean_stable_4kmM2_201501_asc.asc")
-temp_file_stack <- list.files(path="data/cwd/PRISM_tmean_stable_4kmM2_2015_all_asc/", pattern = "PRISM_tmean_stable_4kmM2_2015", full.names = TRUE)
+# ----
+
+# PRISM monthly mean temperature - WY2015
+
+temp_file_stack <- list.files(path="data/cwd/PRISM_tmean_stable_4kmM2_2015_all_asc/", pattern = "PRISM_tmean_stable_4kmM2_201", full.names = TRUE)
 prism_temp_stack = stack(temp_file_stack)
+# Assign prism projection
 proj4string(prism_temp_stack) <- proj_prism
 # Reproject, resample and set new extent
 prism_temp_stack <- spatial_sync_raster(prism_temp_stack,temp_hist[[1]],method="bilinear")
 
-# Generate PET
-# Hamon, W. R. Estimating potential evapotranspiration. J. Hydraul. Div. 87, 107–120 (1961)
-# Haith, Shoemaker GENERALIZED WATERSHED LOADING FUNCTIONS FOR STREAM FLOW NUTRIENTS
-# http://nest.su.se/mnode/Methods/penman.htm
-
-# e_sat - kPa
-e_sat <- 0.6108*exp((17.27*temp)/(237.3 + temp))
+# Generate PET from temperature
 
 # Generate mean monthly daylight hours in day
 daylight_hours = read_csv("data/cwd/daylight_hours_visalia.csv",
@@ -283,10 +286,27 @@ daylight_hours <- daylight_hours %>%
   summarize_all(., funs(mean(., na.rm = TRUE))) %>% 
   as_vector()/3600
 
-# PET - mm/day
-PET = (2.1 * (daylight_hours)^2 * e_sat)/(temp + 273.2)
+# Function for Harom PET method
+pet_hamon <- function(temp, daylight_hours){
+  # Hamon, W. R. Estimating potential evapotranspiration. J. Hydraul. Div. 87, 107–120 (1961)
+  # Haith, Shoemaker GENERALIZED WATERSHED LOADING FUNCTIONS FOR STREAM FLOW NUTRIENTS
+  # http://nest.su.se/mnode/Methods/penman.htm
+  
+  # e_sat - kPa
+  e_sat <- 0.6108*exp((17.27*temp)/(237.3 + temp))
+  
+  # PET - mm/day
+  PET = (2.1 * (daylight_hours)^2 * e_sat)/(temp + 273.2)
+  return(PET)
+}
 
+# For converting Hamon output (mm/day) to mm/month
+days_per_month <- c(31,28,31,30,31,30,31,31,30,31,30,31)
 
+pet_stack <- calc(prism_temp_stack, fun = function(x){pet_hamon(x,daylight_hours)})
+pet_stack <- calc(pet_stack, fun = function(x){x*days_per_month})
+# Sum months to annual total
+pet_2015 <- calc(pet_stack, sum)
 
 # ---------------------------------------------------------------------
 # Import Stream Temperature

@@ -347,6 +347,7 @@ x <- ggplot() +
   facet_grid(.~layer, labeller = as_labeller(precip_id)) +
   theme(legend.position = "bottom")
 plot(x)
+ggsave("output/map_precipitation.jpg", width = 8, height = 5)
 
 
 

@@ -444,6 +444,7 @@ x <- ggplot() +
   facet_grid(.~layer, labeller = as_labeller(tmax_id)) +
   theme(legend.position = "bottom")
 plot(x)
+ggsave("output/map_maximum_temperature.jpg", width = 8, height = 5)
 
 
 # Minimum Temperature - Continuous
@@ -494,6 +495,7 @@ x <- ggplot() +
   facet_grid(.~layer, labeller = as_labeller(tmin_id)) +
   theme(legend.position = "bottom")
 plot(x)
+ggsave("output/map_minimum_temperature.jpg", width = 8, height = 5)
 
 
 

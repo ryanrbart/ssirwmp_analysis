@@ -307,6 +307,7 @@ x <- ggplot() +
   scale_y_continuous(expand=c(0,0)) +   # This eliminates margin buffer around plot
   labs(title="Mean Annual Precipitation", x="Longitude",y="Latitude", size=0.5) +
   theme_classic(base_size =12) +
+  theme(axis.text.x = element_text(angle = 330, hjust=0)) +
   geom_point(data = dplyr::filter(cities, name != 'Fresno'), aes(x = lon, y = lat), 
              shape = 19, color = "black", fill = "grey50", size = 1.2) +
   geom_text(data = dplyr::filter(cities, name == 'Visalia'), 
@@ -333,6 +334,7 @@ x <- ggplot() +
   scale_y_continuous(expand=c(0,0)) +   # This eliminates margin buffer around plot
   labs(title="Mean Annual Precipitation", x="Longitude",y="Latitude", size=0.5) +
   theme_classic(base_size =12) +
+  theme(axis.text.x = element_text(angle = 330, hjust=0)) +
   geom_point(data = dplyr::filter(cities, name != 'Fresno'), aes(x = lon, y = lat), 
              shape = 19, color = "black", fill = "grey50", size = 1.2) +
   geom_text(data = dplyr::filter(cities, name == 'Visalia'), 

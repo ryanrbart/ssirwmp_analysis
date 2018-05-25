@@ -347,13 +347,28 @@ temp_season_by_fp %>%
 # Isolate only late century layers (2070-2099)
 temp_proj_map_2070_2099 <- map(temp_proj_map,function(x)raster::subset(x, 769:1128))
 
-# Generates mean temperatures
+# Generates mean temperatures per pixel
 map_tmax_hist_ccsm4 <- calc(temp_hist_map$tmax_hist_ccsm4, mean)
 map_tmax_45_ccsm4 <- calc(temp_proj_map_2070_2099$tmax_45_ccsm4, mean)
 map_tmax_85_ccsm4 <- calc(temp_proj_map_2070_2099$tmax_85_ccsm4, mean)
 map_tmin_hist_ccsm4 <- calc(temp_hist_map$tmin_hist_ccsm4, mean) 
 map_tmin_45_ccsm4 <- calc(temp_proj_map_2070_2099$tmin_45_ccsm4, mean)
 map_tmin_85_ccsm4 <- calc(temp_proj_map_2070_2099$tmin_85_ccsm4, mean)
+
+# Max and Min Temperature 
+# Tidy the rasters so maps can be plotted
+map_ccsm4_stack <- stack(map_tmax_hist_ccsm4,map_tmax_45_ccsm4,map_tmax_85_ccsm4,
+                         map_tmin_hist_ccsm4,map_tmin_45_ccsm4,map_tmin_85_ccsm4)
+names(map_ccsm4_stack) =  c("map_tmax_1hist_ccsm4","map_tmax_45_ccsm4","map_tmax_85_ccsm4",
+                            "map_tmin_1hist_ccsm4","map_tmin_45_ccsm4","map_tmin_85_ccsm4")
+map_ccsm4_p <- rasterToPoints(map_ccsm4_stack)
+map_ccsm4_tib <- as_tibble(map_ccsm4_p)
+map_ccsm4 <- gather(map_ccsm4_tib, key="layer", value="temp",
+                         "map_tmax_1hist_ccsm4","map_tmax_45_ccsm4","map_tmax_85_ccsm4",
+                         "map_tmin_1hist_ccsm4","map_tmin_45_ccsm4","map_tmin_85_ccsm4")
+map_ccsm4 <- separate(map_ccsm4, layer, into = c("junk", "rcp", "temp_type","junk2"))
+map_ccsm4 <- mutate(map_ccsm4, temp_interval = cut_width(temp, width=4, center = 0))
+
 
 # Maximum Temperature 
 # Tidy the rasters so maps can be plotted
@@ -380,6 +395,17 @@ map_tmin_ccsm4 <- mutate(map_tmin_ccsm4,
                                                    center = .5))
 
 # Create labels for facetting
+rcp_id <- c(
+  `1hist` = "Historical",
+  `45` = "End of Century (RCP4.5)",
+  `85` = "End of Century (RCP8.5)"
+)
+
+temp_id <- c(
+  `tmax` = "Maximum Temperature",
+  `tmin` = "Minimum Temperature"
+)
+
 tmax_id <- c(
   `map_tmax_1hist_ccsm4` = "Historical",
   `map_tmax_45_ccsm4` = "End of Century (RCP4.5)",
@@ -396,6 +422,60 @@ tmin_id <- c(
 # ----
 # Plot temperatures
 
+# All Temperatures - Continuous
+x <- ggplot() +
+  geom_raster(data=map_ccsm4,aes(x=x,y=y, fill=temp)) +
+  geom_sf(data=ss_border, fill=NA, col="white") +
+  scale_fill_continuous(low="blue", high="red", name=expression('Temperature'~'('*degree*'C)')) +
+  scale_x_continuous(expand=c(0,0)) +   # This eliminates margin buffer around plot
+  scale_y_continuous(expand=c(0,0)) +   # This eliminates margin buffer around plot
+  labs(title="Mean Annual Maximum Air Temperature", x="Longitude",y="Latitude", size=0.5) +
+  theme_classic(base_size =12) +
+  theme(axis.text.x = element_text(angle = 330, hjust=0)) +
+  geom_point(data = dplyr::filter(cities, name != 'Fresno'), aes(x = lon, y = lat), 
+             shape = 19, color = "black", fill = "grey50", size = 1.2) +
+  geom_text(data = dplyr::filter(cities, name == 'Visalia'), 
+            aes(x = lon, y = lat, label = paste("  ", as.character(name), sep="")), 
+            size=3, angle = 0, vjust= -0.85, hjust = 0.95, color = "black") +
+  geom_text(data = dplyr::filter(cities, name == 'Porterville'), 
+            aes(x = lon, y = lat, label = paste("  ", as.character(name), sep="")), 
+            size=3, angle = 0, vjust= -0.85, hjust = 1.1, color = "black") +
+  geom_text(data = dplyr::filter(cities, name == 'Bishop'), 
+            aes(x = lon, y = lat, label = paste("  ", as.character(name), sep="")), 
+            size=3, angle = 0, vjust= -0.85, hjust = 0.95, color = "black") +
+  facet_grid(.~layer, labeller = as_labeller(temp_id)) +
+  theme(legend.position = "bottom")
+plot(x)
+
+
+# All Temperatures - Discrete
+x <- ggplot() +
+  geom_raster(data=map_ccsm4,aes(x=x,y=y, fill=temp_interval)) +
+  geom_sf(data=ss_border, fill=NA, col="black") +
+  scale_fill_brewer(palette = "RdBu", direction=-1, name=expression('Temperature'~'('*degree*'C)')) +
+  scale_x_continuous(expand=c(0,0)) +   # This eliminates margin buffer around plot
+  scale_y_continuous(expand=c(0,0)) +   # This eliminates margin buffer around plot
+  labs(title="Mean Annual Air Temperature", x="Longitude",y="Latitude", size=0.5) +
+  theme_classic(base_size =14) +
+  theme(axis.text.x = element_text(angle = 330, hjust=0)) +
+  geom_point(data = dplyr::filter(cities, name != 'Fresno'), aes(x = lon, y = lat), 
+             shape = 19, color = "black", fill = "grey50", size = 1.2) +
+  geom_text(data = dplyr::filter(cities, name == 'Visalia'), 
+            aes(x = lon, y = lat, label = paste("  ", as.character(name), sep="")), 
+            size=3, angle = 0, vjust= -0.85, hjust = 0.95, color = "black") +
+  geom_text(data = dplyr::filter(cities, name == 'Porterville'), 
+            aes(x = lon, y = lat, label = paste("  ", as.character(name), sep="")), 
+            size=3, angle = 0, vjust= -0.85, hjust = 1.1, color = "black") +
+  geom_text(data = dplyr::filter(cities, name == 'Bishop'), 
+            aes(x = lon, y = lat, label = paste("  ", as.character(name), sep="")), 
+            size=3, angle = 0, vjust= -0.85, hjust = 0.95, color = "black") +
+  facet_grid(rcp~temp_type, labeller = as_labeller(c(temp_id,rcp_id))) +
+  theme(legend.position = "bottom")
+plot(x)
+ggsave("output/map_all_temperature.jpg", width = 8, height = 9)
+
+
+
 # Maximum Temperature - Continuous
 x <- ggplot() +
   geom_raster(data=map_tmax_ccsm4,aes(x=x,y=y, fill=temp)) +
@@ -405,6 +485,7 @@ x <- ggplot() +
   scale_y_continuous(expand=c(0,0)) +   # This eliminates margin buffer around plot
   labs(title="Mean Annual Maximum Air Temperature", x="Longitude",y="Latitude", size=0.5) +
   theme_classic(base_size =12) +
+  theme(axis.text.x = element_text(angle = 330, hjust=0)) +
   geom_point(data = dplyr::filter(cities, name != 'Fresno'), aes(x = lon, y = lat), 
              shape = 19, color = "black", fill = "grey50", size = 1.2) +
   geom_text(data = dplyr::filter(cities, name == 'Visalia'), 
@@ -430,6 +511,7 @@ x <- ggplot() +
   scale_y_continuous(expand=c(0,0)) +   # This eliminates margin buffer around plot
   labs(title="Mean Annual Maximum Air Temperature", x="Longitude",y="Latitude", size=0.5) +
   theme_classic(base_size =12) +
+  theme(axis.text.x = element_text(angle = 330, hjust=0)) +
   geom_point(data = dplyr::filter(cities, name != 'Fresno'), aes(x = lon, y = lat), 
              shape = 19, color = "black", fill = "grey50", size = 1.2) +
   geom_text(data = dplyr::filter(cities, name == 'Visalia'), 
@@ -456,6 +538,7 @@ x <- ggplot() +
   scale_y_continuous(expand=c(0,0)) +   # This eliminates margin buffer around plot
   labs(title="Mean Annual Minimum Air Temperature", x="Longitude",y="Latitude", size=0.5) +
   theme_classic(base_size =12) +
+  theme(axis.text.x = element_text(angle = 330, hjust=0)) +
   geom_point(data = dplyr::filter(cities, name != 'Fresno'), aes(x = lon, y = lat), 
              shape = 19, color = "black", fill = "grey50", size = 1.2) +
   geom_text(data = dplyr::filter(cities, name == 'Visalia'), 
@@ -481,6 +564,7 @@ x <- ggplot() +
   scale_y_continuous(expand=c(0,0)) +   # This eliminates margin buffer around plot
   labs(title="Mean Annual Minimum Air Temperature", x="Longitude",y="Latitude", size=0.5) +
   theme_classic(base_size =12) +
+  theme(axis.text.x = element_text(angle = 330, hjust=0)) +
   geom_point(data = dplyr::filter(cities, name != 'Fresno'), aes(x = lon, y = lat), 
              shape = 19, color = "black", fill = "grey50", size = 1.2) +
   geom_text(data = dplyr::filter(cities, name == 'Visalia'), 

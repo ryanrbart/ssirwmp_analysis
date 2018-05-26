@@ -39,13 +39,16 @@ ss_stream_temp_elev_avg <- ss_stream_lines %>%
 
 
 # Change in streamflow temp
-ggplot() +
-  theme_bw(base_size =12) +
-  geom_sf(data=ss_border, fill=NA, col="black") +
+x <- ggplot() +
+  theme_bw(base_size = 12) +
   geom_sf(data=ss_stream_lines, aes(col=temp_diff_2080D)) +
-  scale_color_continuous(low="blue", high="red",  name="Temperature\nChange (C)") +
-  labs(title="Change in stream temperatures (2070-2099)", x="Longitude",y="Latitude", size=0.5) +
-  theme_classic(base_size =12)
+  geom_sf(data=ss_border, fill=NA, col="black") +
+  theme(panel.grid.major = element_line(colour = 'transparent')) +   # Gets rid of graticules
+  scale_color_continuous(low="blue", high="red",name="Temperature\nChange (C)") +
+  labs(title="Change in August Stream\nTemperatures (2070-2099)", x="Longitude",y="Latitude", size=0.5) +
+  scale_x_continuous(expand=c(0,0)) +   # This eliminates margin buffer around plot
+  scale_y_continuous(expand=c(0,0))   # This eliminates margin buffer around plot
+plot(x)
   
 ggsave("output/stream_temp_change.jpg", width = 5, height = 5)
 

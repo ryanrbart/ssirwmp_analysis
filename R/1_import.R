@@ -313,21 +313,18 @@ pet_2015 <- calc(pet_stack, sum)
 
 # Import data
 stream_lines <- st_read(dsn = "data/stream_temperature/", layer = "NorWeST_PredictedStreamTempLines_CentralCA")
-# stream_points <- st_read(dsn = "data/stream_temperature/", layer = "NorWeST_PredictedStreamTempPoints_CentralCA")
 
 # Reproject
 stream_lines <- st_transform(stream_lines, crs = proj_longlat)
-# stream_points <- st_transform(stream_points, crs = proj_longlat)
 
 # Subset by SS
-ss_stream_lines <- st_intersection(stream_lines, ss_border)
-# ss_stream_points <- st_intersection(stream_points, ss_border)
+#ss_stream_lines <- st_intersection(stream_lines, ss_border) # Just SS region
+ss_stream_lines <- st_crop(stream_lines, st_bbox(st_buffer(ss_border,0.05))) # Full SS box extent
 
 # Filter out non-valid data (Scenarios 37-41 have data when all others are -9999)
 ss_stream_lines <- ss_stream_lines %>% 
   dplyr::filter(S1_93_11 != -9999.00)
-# ss_stream_points <- ss_stream_points %>% 
-#   dplyr::filter(S1_93_11 != -9999.00)
+
 
 
 # ---------------------------------------------------------------------

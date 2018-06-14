@@ -354,11 +354,96 @@ snow <- resample(snow, temp_hist[[1]], method='ngb')
 snow[is.na(ss_border_rast) == TRUE] <- NA
 
 
+
+# ---------------------------------------------------------------------
+# Import wildfire data
+# Source: http://cal-adapt.org/data/wildfire/
+# Using the annual averages. The number datasets show individual modeled fires.
+
+# Select files
+fire_files <- list.files("data/fire", pattern = "*.nc", full.names = TRUE)
+fire_files_names <- list.files("data/fire", pattern = "*.nc", full.names = FALSE)
+
+# Create fire raster
+fire <- map(fire_files, function(x) stack(x))
+names(fire) <- fire_files_names
+
+# Reproject, resample and set new extent
+fire_stack <- map(fire, function(x) spatial_sync_raster(x,temp_hist[[1]],method="bilinear"))
+
+# Rename layers of raster stack to year
+newname <- paste("X",seq(1954,2100), sep="")
+map(fire_stack, ~setNames(.x, newname))
+
+# Create variable with full extent to use with fire maps
+fire_stack_map <- fire_stack
+
+# Using a for loop instead of purrr::MAP cause I can't figure out how to rework embedded function to not contain <-
+for (aa in seq_along(fire_stack)){
+  fire_stack[[aa]][is.na(ss_border_rast) == TRUE] <- NA
+}
+
+
+# ---------------------------------------------------------------------
+# Import VIC data
+
+# Import basin-averaged daily VIC data
+etqswe_kings_canesm2_hist <- readr::read_csv("../../VIC_Modeling_SS/BasinAvg/Kings_CanESM2_Historical_Q_ET_SWE_1950-2005.csv")
+etqswe_kings_canesm2_45 <- readr::read_csv("../../VIC_Modeling_SS/BasinAvg/Kings_CanESM2_RCP45_Q_ET_SWE_2006-2099.csv")
+etqswe_kings_canesm2_85 <- readr::read_csv("../../VIC_Modeling_SS/BasinAvg/Kings_CanESM2_RCP85_Q_ET_SWE_2006-2099.csv")
+
+etqswe_kings_ccsm4_hist <- readr::read_csv("../../VIC_Modeling_SS/BasinAvg/Kings_CCSM4_Historical_Q_ET_SWE_1950-2005.csv")
+etqswe_kings_ccsm4_45 <- readr::read_csv("../../VIC_Modeling_SS/BasinAvg/Kings_CCSM4_RCP45_Q_ET_SWE_2006-2099.csv")
+etqswe_kings_ccsm4_85 <- readr::read_csv("../../VIC_Modeling_SS/BasinAvg/Kings_CCSM4_RCP85_Q_ET_SWE_2006-2099.csv")
+
+etqswe_kings_cnrm_hist <- readr::read_csv("../../VIC_Modeling_SS/BasinAvg/Kings_CNRM-CM5_Historical_Q_ET_SWE_1950-2005.csv")
+etqswe_kings_cnrm_45 <- readr::read_csv("../../VIC_Modeling_SS/BasinAvg/Kings_CNRM-CM5_RCP45_Q_ET_SWE_2006-2099.csv")
+etqswe_kings_cnrm_85 <- readr::read_csv("../../VIC_Modeling_SS/BasinAvg/Kings_CNRM-CM5_RCP85_Q_ET_SWE_2006-2099.csv")
+
+etqswe_kings_hadgemcc_hist <- readr::read_csv("../../VIC_Modeling_SS/BasinAvg/Kings_HadGEM2-CC365_Historical_Q_ET_SWE_1950-2005.csv")
+etqswe_kings_hadgemcc_45 <- readr::read_csv("../../VIC_Modeling_SS/BasinAvg/Kings_HadGEM2-CC365_RCP45_Q_ET_SWE_2006-2099.csv")
+etqswe_kings_hadgemcc_85 <- readr::read_csv("../../VIC_Modeling_SS/BasinAvg/Kings_HadGEM2-CC365_RCP85_Q_ET_SWE_2006-2099.csv")
+
+etqswe_kings_hadgemec_hist <- readr::read_csv("../../VIC_Modeling_SS/BasinAvg/Kings_HadGEM2-ES365_Historical_Q_ET_SWE_1950-2005.csv")
+etqswe_kings_hadgemec_45 <- readr::read_csv("../../VIC_Modeling_SS/BasinAvg/Kings_HadGEM2-ES365_RCP45_Q_ET_SWE_2006-2099.csv")
+etqswe_kings_hadgemec_85 <- readr::read_csv("../../VIC_Modeling_SS/BasinAvg/Kings_HadGEM2-ES365_RCP85_Q_ET_SWE_2006-2099.csv")
+
+etqswe_kings_miroc5_hist <- readr::read_csv("../../VIC_Modeling_SS/BasinAvg/Kings_MIROC5_Historical_Q_ET_SWE_1950-2005.csv")
+etqswe_kings_miroc5_45 <- readr::read_csv("../../VIC_Modeling_SS/BasinAvg/Kings_MIROC5_RCP45_Q_ET_SWE_2006-2099.csv")
+etqswe_kings_miroc5_85 <- readr::read_csv("../../VIC_Modeling_SS/BasinAvg/Kings_MIROC5_RCP85_Q_ET_SWE_2006-2099.csv")
+
+# Observed values
+etqswe_kings_obs <- readr::read_csv("../../VIC_Modeling_SS/BasinAvg/Kings_Obs_Q_ET_SWE_1950-2011.csv")
+
+# Consolidate basin-averaged daily data to lists
+etqswe_kings <- list(
+  kings_canesm2_hist=etqswe_kings_canesm2_hist,
+  kings_ccsm4_hist=etqswe_kings_ccsm4_hist,
+  kings_cnrm_hist=etqswe_kings_cnrm_hist,
+  kings_hadgemcc_hist=etqswe_kings_hadgemcc_hist,
+  kings_hadgemec_hist=etqswe_kings_hadgemec_hist,
+  kings_miroc5_hist=etqswe_kings_miroc5_hist,
+  kings_canesm2_45=etqswe_kings_canesm2_45,kings_canesm2_85=etqswe_kings_canesm2_85,
+  kings_ccsm4_45=etqswe_kings_ccsm4_45,kings_ccsm4_85=etqswe_kings_ccsm4_85,
+  kings_cnrm_45=etqswe_kings_cnrm_45,kings_cnrm_85=etqswe_kings_cnrm_85,
+  kings_hadgemcc_45=etqswe_kings_hadgemcc_45,kings_hadgemcc_85=etqswe_kings_hadgemcc_85,
+  kings_hadgemec_45=etqswe_kings_hadgemec_45,kings_hadgemec_85=etqswe_kings_hadgemec_85,
+  kings_miroc5_45=etqswe_kings_miroc5_45,kings_miroc5_85=etqswe_kings_miroc5_85,
+  kings_magicalgcm_obs=etqswe_kings_obs
+)
+
+
+# ----
+# Sierra (aka WY average ET and Peak SWE - distributed)
+wy_et_canesm2_hist <- readr::read_csv("../../VIC_Modeling_SS/Sierra/CanESM2_Historical_1951_2005_WY_ET.csv")
+
+
+
 # ---------------------------------------------------------------------
 # Import DEM
 
 
-happy <- raster("data/dem/dem90_hf/dem90_hf/dem90_hf/w001001.adf")
+# happy <- raster("data/dem/dem90_hf/dem90_hf/dem90_hf/w001001.adf")
 
 # https://gis.stackexchange.com/questions/147797/unable-to-read-raster-into-r-tiffreaddirectoryfailed-to-read-directory-at-off
 

@@ -58,7 +58,7 @@ ggplot() +
   scale_fill_discrete(name="RCP", labels = c("4.5","8.5")) +
   ylim(0,3.25) +
   theme_bw()
-ggsave("output/box_wildfire.jpg", width = 5, height = 4)
+ggsave("output/wildfire_box_annual.jpg", width = 4.5, height = 3.5)
 
 
 
@@ -101,14 +101,19 @@ fire_map_tib <- bind_rows(fire_map_tib, .id="future_period")
 fire_map_tib <- mutate(fire_map_tib, 
                        percent_area_burned = area_burned_h/36,  # Original data is hectares burned per pixel. 6x6km pixel is equal to 3600 ha. To get percent burned, dividing by 3600 and multipling by 100.
                        mean_annual_percent_area_burned = cut(percent_area_burned,
-                                                       breaks=c(0,0.2,0.3,0.4,
-                                                                0.6,0.8,1,1.4,2,3,
-                                                                5,30)))
+                                                             breaks=c(0,0.1,0.2,0.3,0.4,
+                                                                      0.6,0.8,1.1,1.7,2.5,
+                                                                      6,30)))
 
-summary(cut(fire_map_tib$percent_area_burned,
-    breaks=c(0,0.2,0.3,0.4,
-             0.6,0.8,1,1.4,2,3,
-             5,30)))
+happy <- fire_map_tib %>% 
+  #dplyr::filter(gcm=="CanESM2")
+  dplyr::filter(gcm=="CNRMCM5")
+  # dplyr::filter(gcm=="HadGEM2ES")
+  # dplyr::filter(gcm=="MIROC5")
+  summary(cut(happy$percent_area_burned,
+              breaks=c(0,0.1,0.2,0.3,0.4,
+                       0.6,0.8,1.1,1.7,2.5,
+                       6,30)))
 
 # Dimesions to deal with.
 # 4 GCMs
@@ -143,10 +148,10 @@ wildfire_map <- function(tib, border, gcm_input){
   x <- ggplot() +
     geom_raster(data=fire_map_filter,aes(x=x,y=y, fill=mean_annual_percent_area_burned)) +
     geom_sf(data=border, fill=NA, col="white") +
-    scale_fill_brewer(palette = "RdBu", direction=-1, name="Mean Annual\nPercent Area Burned") +
+    scale_fill_brewer(palette = "RdBu", direction=-1, name="Mean Annual\nArea Burned (%)") +
     scale_x_continuous(expand=c(0,0)) +   # This eliminates margin buffer around plot
     scale_y_continuous(expand=c(0,0)) +   # This eliminates margin buffer around plot
-    labs(title=paste("Mean Annual Percent Area Burned -", gcm_input), x="Longitude",y="Latitude", size=0.5) +
+    labs(title=paste("Mean Annual Percent Area Burned"), x="Longitude",y="Latitude", size=0.5) +
     theme_classic(base_size =12) +
     theme(axis.text.x = element_text(angle = 330, hjust=0)) +
     geom_point(data = dplyr::filter(cities, name != 'Fresno'), aes(x = lon, y = lat), 
@@ -161,10 +166,11 @@ wildfire_map <- function(tib, border, gcm_input){
               aes(x = lon, y = lat, label = paste("  ", as.character(name), sep="")), 
               size=3, angle = 0, vjust= -0.85, hjust = 0.95, color = "black") +
     facet_grid(rcp~future_period, labeller = as_labeller(c(rcp_id, period_id))) +
-    theme(legend.position = "bottom")
+    theme(legend.position = "bottom",
+          panel.background = element_rect(fill = 'gray'))
   #plot(x)
   
-  ggsave(paste("output/map_wildfire_",gcm_input,".jpg",sep=""),plot=x, width = 7.5, height = 7)
+  ggsave(paste("output/map_wildfire_",gcm_input,".jpg",sep=""),plot=x, width = 7, height = 7.8)
 }
 
 wildfire_map(tib=fire_map_tib, border=ss_border, gcm_input="CanESM2")

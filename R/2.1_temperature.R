@@ -157,6 +157,7 @@ ggplot() +
                color="black") +
   labs(title = "Projected Maximum Annual Temperatures", x = "Period", y = expression('Temperature'~'('*degree*'C)')) +
   scale_fill_discrete(name="RCP", labels = c("4.5","8.5")) +
+  scale_y_continuous(sec.axis = sec_axis(~.*1.8+32, name = expression('Temperature'~'('*degree*'F)'))) +
   theme_bw()
 ggsave("output/box_annual_max.jpg", width = 4, height = 3)
 
@@ -167,6 +168,7 @@ ggplot() +
                color="black") +
   labs(title = "Projected Minimum Annual Temperatures", x = "Period", y = expression('Temperature'~'('*degree*'C)')) +
   scale_fill_discrete(name="RCP", labels = c("4.5","8.5")) +
+  scale_y_continuous(sec.axis = sec_axis(~.*1.8+32, name = expression('Temperature'~'('*degree*'F)'))) +
   theme_bw()
 ggsave("output/box_annual_min.jpg", width = 4, height = 3)
 
@@ -178,9 +180,10 @@ ggplot() +
   labs(title = "Projected Change in Annual Temperatures", x = "Period", y = expression('Change'~'in'~'Temperature'~'('*degree*'C)')) +
   geom_hline(yintercept = 0) +
   scale_fill_discrete(name="RCP", labels = c("4.5","8.5")) +
+  scale_y_continuous(sec.axis = sec_axis(~.*1.8, name = expression('Change'~'in'~'Temperature'~'('*degree*'F)'))) +
   facet_grid(.~temp_var, labeller = as_labeller(temp_id)) +
   theme_bw()
-ggsave("output/box_annual_delta.jpg", width = 6, height = 4)
+ggsave("output/box_annual_delta.jpg", width = 5.5, height = 3.5)
 
 
 # Baseline annual temperature values
@@ -204,6 +207,7 @@ ggplot() +
                color="black", outlier.shape = NA) +
   labs(title = "Projected Maximum Monthly Temperatures", x = "Period", y = expression('Temperature'~'('*degree*'C)')) +
   scale_fill_discrete(name="RCP", labels = c("4.5","8.5")) +
+  scale_y_continuous(sec.axis = sec_axis(~.*1.8+32, name = expression('Temperature'~'('*degree*'F)'))) +
   facet_wrap(~month, labeller = as_labeller(month_id)) +
   theme_bw()
 ggsave("output/box_monthly_max.jpg", width = 8, height = 6)
@@ -214,6 +218,7 @@ ggplot() +
                color="black", outlier.shape = NA) +
   labs(title = "Projected Minimum Monthly Temperatures", x = "Period", y = expression('Temperature'~'('*degree*'C)')) +
   scale_fill_discrete(name="RCP", labels = c("4.5","8.5")) +
+  scale_y_continuous(sec.axis = sec_axis(~.*1.8+32, name = expression('Temperature'~'('*degree*'F)'))) +
   facet_wrap(~month, labeller = as_labeller(month_id)) +
   theme_bw()
 ggsave("output/box_monthly_min.jpg", width = 8, height = 6)
@@ -225,6 +230,7 @@ ggplot() +
   labs(title = "Projected Change in Maximum Monthly Temperatures", x = "Period", y = expression('Change'~'in'~'Temperature'~'('*degree*'C)')) +
   geom_hline(yintercept = 0) +
   scale_fill_discrete(name="RCP", labels = c("4.5","8.5")) +
+  scale_y_continuous(sec.axis = sec_axis(~.*1.8, name = expression('Change'~'in'~'Temperature'~'('*degree*'F)'))) +
   facet_wrap(~month, labeller = as_labeller(month_id)) +
   theme_bw()
 ggsave("output/box_monthly_max_delta.jpg", width = 8, height = 6)
@@ -236,6 +242,7 @@ ggplot() +
   labs(title = "Projected Change in Minimum Monthly Temperatures", x = "Period", y = expression('Change'~'in'~'Temperature'~'('*degree*'C)')) +
   geom_hline(yintercept = 0) +
   scale_fill_discrete(name="RCP", labels = c("4.5","8.5")) +
+  scale_y_continuous(sec.axis = sec_axis(~.*1.8, name = expression('Change'~'in'~'Temperature'~'('*degree*'F)'))) +
   facet_wrap(~month, labeller = as_labeller(month_id)) +
   theme_bw()
 ggsave("output/box_monthly_min_delta.jpg", width = 8, height = 6)
@@ -256,6 +263,7 @@ ggplot() +
                color="black", outlier.shape = NA) +
   labs(title = "Projected Maximum Seasonal Temperatures", x = "Period", y = expression('Temperature'~'('*degree*'C)')) +
   scale_fill_discrete(name="RCP", labels = c("4.5","8.5")) +
+  scale_y_continuous(sec.axis = sec_axis(~.*1.8+32, name = expression('Temperature'~'('*degree*'F)'))) +
   facet_wrap(~season, labeller = as_labeller(season_id)) +
   theme_bw()
 ggsave("output/box_seasonal_max.jpg", width = 5, height = 4)
@@ -266,6 +274,7 @@ ggplot() +
                color="black", outlier.shape = NA) +
   labs(title = "Projected Minimum Seasonal Temperatures", x = "Period", y = expression('Temperature'~'('*degree*'C)')) +
   scale_fill_discrete(name="RCP", labels = c("4.5","8.5")) +
+  scale_y_continuous(sec.axis = sec_axis(~.*1.8+32, name = expression('Temperature'~'('*degree*'F)'))) +
   facet_wrap(~season, labeller = as_labeller(season_id)) +
   theme_bw()
 ggsave("output/box_seasonal_min.jpg", width = 5, height = 4)
@@ -277,6 +286,7 @@ ggplot() +
   labs(title = "Projected Change in Maximum Seasonal Temperatures", x = "Period", y = expression('Change'~'in'~'Temperature'~'('*degree*'C)')) +
   geom_hline(yintercept = 0) +
   scale_fill_discrete(name="RCP", labels = c("4.5","8.5")) +
+  scale_y_continuous(sec.axis = sec_axis(~.*1.8, name = expression('Change'~'in'~'Temperature'~'('*degree*'F)'))) +
   facet_wrap(~season, labeller = as_labeller(season_id)) +
   theme_bw()
 ggsave("output/box_seasonal_max_delta.jpg", width = 5, height = 4)
@@ -288,6 +298,7 @@ ggplot() +
   labs(title = "Projected Change in Minimum Seasonal Temperatures", x = "Period", y = expression('Change'~'in'~'Temperature'~'('*degree*'C)')) +
   geom_hline(yintercept = 0) +
   scale_fill_discrete(name="RCP", labels = c("4.5","8.5")) +
+  scale_y_continuous(sec.axis = sec_axis(~.*1.8, name = expression('Change'~'in'~'Temperature'~'('*degree*'F)'))) +
   facet_wrap(~season, labeller = as_labeller(season_id)) +
   theme_bw()
 ggsave("output/box_seasonal_min_delta.jpg", width = 5, height = 4)

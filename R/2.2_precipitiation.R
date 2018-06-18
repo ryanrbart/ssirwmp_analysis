@@ -138,8 +138,9 @@ ggplot() +
   labs(title = "Projected Annual Precipitation", x = "Period", y = "Annual Precipitation (mm)") +
   geom_hline(data=precip_annual_by_fp, aes(yintercept = precip_hist_annual), color="gray20") +
   scale_fill_discrete(name="RCP", labels = c("4.5","8.5")) +
+  scale_y_continuous(sec.axis = sec_axis(~./25.4, name = "Annual Precipitation (in)")) +
   theme_bw()
-ggsave("output/precip_box_annual.jpg", width = 4, height = 3)
+ggsave("output/precip_box_annual.jpg", width = 5.5, height = 3.5)
 
 # Changes in Precipitation
 ggplot() + 
@@ -148,8 +149,9 @@ ggplot() +
   labs(title = "Projected Change in Annual Precipitation", x = "Period", y = "Change in Annual Precipitation (mm)") +
   geom_hline(yintercept = 0) +
   scale_fill_discrete(name="RCP", labels = c("4.5","8.5")) +
+  scale_y_continuous(sec.axis = sec_axis(~./25.4, name = "Change in Annual Precipitation (in)")) +
   theme_bw()
-ggsave("output/precip_box_annual_delta.jpg", width = 4, height = 3)
+ggsave("output/precip_box_annual_delta.jpg", width = 5.5, height = 3.5)
 
 # Baseline annual precipitation values
 precip_annual_by_fp %>% 
@@ -172,6 +174,7 @@ ggplot() +
   labs(title = "Projected Monthly Precipitation", x = "Period", y = "Monthly Precipitation (mm)") +
   scale_fill_discrete(name="RCP", labels = c("4.5","8.5")) +
   facet_wrap(~month, labeller = as_labeller(month_id)) +
+  scale_y_continuous(sec.axis = sec_axis(~./25.4, name = "Annual Precipitation (in)")) +
   theme_bw()
 ggsave("output/precip_box_monthly.jpg", width = 8, height = 6)
 
@@ -183,6 +186,7 @@ ggplot() +
   geom_hline(yintercept = 0) +
   scale_fill_discrete(name="RCP", labels = c("4.5","8.5")) +
   facet_wrap(~month, labeller = as_labeller(month_id)) +
+  scale_y_continuous(sec.axis = sec_axis(~./25.4, name = "Change in Annual Precipitation (in)")) +
   theme_bw()
 ggsave("output/precip_box_monthly_delta.jpg", width = 8, height = 6)
 
@@ -203,6 +207,7 @@ ggplot() +
   labs(title = "Projected Seasonal Precipitation", x = "Period", y = "Seasonal Precipitation (mm)") +
   scale_fill_discrete(name="RCP", labels = c("4.5","8.5")) +
   facet_wrap(~season, labeller = as_labeller(season_id)) +
+  scale_y_continuous(sec.axis = sec_axis(~./25.4, name = "Annual Precipitation (in)")) +
   theme_bw()
 ggsave("output/precip_box_seasonal.jpg", width = 5, height = 4)
 
@@ -214,6 +219,7 @@ ggplot() +
   geom_hline(yintercept = 0) +
   scale_fill_discrete(name="RCP", labels = c("4.5","8.5")) +
   facet_wrap(~season, labeller = as_labeller(season_id)) +
+  scale_y_continuous(sec.axis = sec_axis(~./25.4, name = "Change in Annual Precipitation (in)")) +
   theme_bw()
 ggsave("output/precip_box_seasonal_delta.jpg", width = 5, height = 4)
 

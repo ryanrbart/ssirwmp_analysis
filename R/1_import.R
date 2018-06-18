@@ -345,13 +345,13 @@ proj4string(snow) <- CRS("+init=epsg:4269")
 snow  <- projectRaster(snow, crs = proj_longlat) 
 
 # Crop
-snow <- crop(snow, e)
+snow <- crop(snow, (e+0.2))
 
 # Resample
 snow <- resample(snow, temp_hist[[1]], method='ngb')
 
 # Null out raster areas outside of ss border
-snow[is.na(ss_border_rast) == TRUE] <- NA
+#snow[is.na(ss_border_rast) == TRUE] <- NA
 
 
 

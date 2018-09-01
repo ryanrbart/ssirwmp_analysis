@@ -3,6 +3,30 @@
 
 source("R/0_utilities.R")
 
+# ---------------------------------------------------------------------
+# Import processed MACA
+
+# Import temperature (Lists of rasterbricks for each GCM min and max temp)
+temp_hist <- read_rds("output/processed_data/temp_hist.rds")
+temp_proj <- read_rds("output/processed_data/temp_proj.rds")
+
+# Temperature and precipitation data for maps
+temp_hist_map <- temp_hist
+temp_proj_map <- temp_proj
+
+# ------
+# Temperature data for analysis
+# Null out raster areas outside of ss border
+ss_border_rast <- rasterize(ss_border_sp, precip_hist[[1]])
+
+# Using a for loop instead of purrr::MAP cause I can't figure out how to rework embedded function to not contain <-
+for (aa in seq_along(temp_hist)){
+  temp_hist[[aa]][is.na(ss_border_rast) == TRUE] <- NA
+}
+for (aa in seq_along(temp_proj)){
+  temp_proj[[aa]][is.na(ss_border_rast) == TRUE] <- NA
+}
+
 
 # ---------------------------------------------------------------------
 # Time-series (processing)
@@ -32,7 +56,7 @@ temp_hist_tib <- temp_hist %>%
   purrr::map(timeseries_mean) %>% 
   bind_rows(.id="type") %>% 
   separate(type, into=c("temp_var", "rcp", "gcm")) %>% 
-  mutate(season = case_when(
+  dplyr::mutate(season = case_when(
     (month==1)~"1",(month==2)~"1",(month==3)~"1",
     (month==4)~"2",(month==5)~"2",(month==6)~"2",
     (month==7)~"3",(month==8)~"3",(month==9)~"3",
@@ -44,7 +68,7 @@ temp_proj_tib <- temp_proj %>%
   purrr::map(timeseries_mean) %>% 
   bind_rows(.id="type") %>% 
   separate(type, into=c("temp_var", "rcp", "gcm")) %>% 
-  mutate(season = case_when(
+  dplyr::mutate(season = case_when(
     (month==1)~"1",(month==2)~"1",(month==3)~"1",
     (month==4)~"2",(month==5)~"2",(month==6)~"2",
     (month==7)~"3",(month==8)~"3",(month==9)~"3",
@@ -53,18 +77,18 @@ temp_proj_tib <- temp_proj %>%
 
 # Group historical by year so that they means can be joined to future scenarios
 temp_hist_year <- temp_hist_tib %>% 
-  group_by(temp_var, gcm) %>% 
-  summarize(temp_hist_annual = mean(temp))
+  dplyr::group_by(temp_var, gcm) %>% 
+  dplyr::summarize(temp_hist_annual = mean(temp))
 
 # Group historical by month so that they means can be joined to future scenarios
 temp_hist_month <- temp_hist_tib %>% 
-  group_by(temp_var, gcm, month) %>% 
-  summarize(temp_hist_month = mean(temp))
+  dplyr::group_by(temp_var, gcm, month) %>% 
+  dplyr::summarize(temp_hist_month = mean(temp))
 
 # Group historical by season so that they means can be joined to future scenarios
 temp_hist_season <- temp_hist_tib %>% 
-  group_by(temp_var, gcm, season) %>% 
-  summarize(temp_hist_season = mean(temp))
+  dplyr::group_by(temp_var, gcm, season) %>% 
+  dplyr::summarize(temp_hist_season = mean(temp))
 
 # Join historical scenarios to future projections and add future period groupings
 temp_tib_final <- temp_proj_tib %>% 
@@ -72,7 +96,7 @@ temp_tib_final <- temp_proj_tib %>%
   left_join(temp_hist_month, by = c("temp_var", "gcm", "month")) %>% 
   left_join(temp_hist_season, by = c("temp_var", "gcm", "season")) %>% 
   dplyr::filter(year >= 2010) %>% 
-  mutate(future_period = case_when(
+  dplyr::mutate(future_period = case_when(
     between(year,2010,2039) ~ "2010-39",
     between(year,2040,2069) ~ "2040-69",
     between(year,2070,2099) ~ "2070-99"
@@ -82,13 +106,13 @@ temp_tib_final <- temp_proj_tib %>%
 
 # Produce summarized annual data
 temp_annual <- temp_tib_final %>% 
-  group_by(temp_var, rcp, gcm, year, future_period) %>% 
-  summarise(temp = mean(temp), temp_hist_annual=mean(temp_hist_annual)) %>% 
-  mutate(temp_annual_diff = temp-temp_hist_annual)
+  dplyr::group_by(temp_var, rcp, gcm, year, future_period) %>% 
+  dplyr::summarise(temp = mean(temp), temp_hist_annual=mean(temp_hist_annual)) %>% 
+  dplyr::mutate(temp_annual_diff = temp-temp_hist_annual)
 # Produce summarized annual data by future period
 temp_annual_by_fp <- temp_annual %>% 
-  group_by(temp_var, rcp, gcm, future_period) %>% 
-  summarise(temp = mean(temp), temp_hist_annual=mean(temp_hist_annual),
+  dplyr::group_by(temp_var, rcp, gcm, future_period) %>% 
+  dplyr::summarise(temp = mean(temp), temp_hist_annual=mean(temp_hist_annual),
             temp_annual_diff=mean(temp_annual_diff))
 
 temp_annual_max <- dplyr::filter(temp_annual, temp_var == "tmax")
@@ -99,11 +123,11 @@ temp_annual_by_fp_min <- dplyr::filter(temp_annual_by_fp, temp_var == "tmin")
 
 # Produce summarized monthly data by year
 temp_month <- temp_tib_final %>% 
-  mutate(temp_monthly_diff = temp-temp_hist_month)
+  dplyr::mutate(temp_monthly_diff = temp-temp_hist_month)
 # Produce summarized monthly data by future period
 temp_month_by_fp <- temp_month %>% 
-  group_by(temp_var, rcp, gcm, month, future_period) %>% 
-  summarise(temp = mean(temp), temp_hist_month=mean(temp_hist_month),
+  dplyr::group_by(temp_var, rcp, gcm, month, future_period) %>% 
+  dplyr::summarise(temp = mean(temp), temp_hist_month=mean(temp_hist_month),
             temp_monthly_diff=mean(temp_monthly_diff))
 
 temp_month_max <- dplyr::filter(temp_month, temp_var == "tmax")
@@ -114,13 +138,13 @@ temp_month_by_fp_min <- dplyr::filter(temp_month_by_fp, temp_var == "tmin")
 
 # Produce summarized seasonal data by year
 temp_season <- temp_tib_final %>% 
-  group_by(temp_var, rcp, gcm, year, season, future_period) %>% 
-  summarise(temp = mean(temp), temp_hist_season = mean(temp_hist_season)) %>% 
-  mutate(temp_seasonal_diff = temp-temp_hist_season)
+  dplyr::group_by(temp_var, rcp, gcm, year, season, future_period) %>% 
+  dplyr::summarise(temp = mean(temp), temp_hist_season = mean(temp_hist_season)) %>% 
+  dplyr::mutate(temp_seasonal_diff = temp-temp_hist_season)
 # Produce summarized seasonal data by future period
 temp_season_by_fp <- temp_season %>% 
-  group_by(temp_var, rcp, gcm, season, future_period) %>% 
-  summarise(temp = mean(temp), temp_hist_season=mean(temp_hist_season),
+  dplyr::group_by(temp_var, rcp, gcm, season, future_period) %>% 
+  dplyr::summarise(temp = mean(temp), temp_hist_season=mean(temp_hist_season),
             temp_seasonal_diff=mean(temp_seasonal_diff))
 
 temp_season_max <- dplyr::filter(temp_season, temp_var == "tmax")
@@ -188,8 +212,8 @@ ggsave("output/box_annual_delta.jpg", width = 5.5, height = 3.5)
 
 # Baseline annual temperature values
 temp_annual_by_fp %>% 
-  group_by(temp_var) %>% 
-  summarise(mean = mean(temp_hist_annual))
+  dplyr::group_by(temp_var) %>% 
+  dplyr::summarise(mean = mean(temp_hist_annual))
 
 
 # ---------------------------------------------------------------------
@@ -305,15 +329,15 @@ ggsave("output/box_seasonal_min_delta.jpg", width = 5, height = 4)
 
 # Baseline seasonal temperature values
 temp_season_by_fp %>% 
-  group_by(temp_var, season) %>% 
-  summarise(mean = mean(temp_hist_season))
+  dplyr::group_by(temp_var, season) %>% 
+  dplyr::summarise(mean = mean(temp_hist_season))
 
 # ---------------------------------------------------------------------
 # Mean monthly temperatures plot
 
 # happy <- temp_month_by_fp_max %>% 
-#   group_by(rcp,future_period,month) %>% 
-#   summarize(month_temp=mean(temp))
+#   dplyr::group_by(rcp,future_period,month) %>% 
+#   dplyr::summarize(month_temp=mean(temp))
 # 
 # ggplot() +
 #   geom_line(data=happy, aes(x=month,y=month_temp, color=future_period)) +
@@ -329,20 +353,20 @@ library(kableExtra)
 
 # 
 temp_annual_by_fp %>% 
-  group_by(temp_var,rcp,future_period) %>% 
-  summarize(temp_annual_diff_period = mean(temp_annual_diff))
+  dplyr::group_by(temp_var,rcp,future_period) %>% 
+  dplyr::summarize(temp_annual_diff_period = mean(temp_annual_diff))
 
 
 temp_month_by_fp %>% 
-  group_by(temp_var,rcp,future_period, month) %>% 
-  summarize(temp_month_diff_period = mean(temp_monthly_diff)) %>%
+  dplyr::group_by(temp_var,rcp,future_period, month) %>% 
+  dplyr::summarize(temp_month_diff_period = mean(temp_monthly_diff)) %>%
   unite(rcp_period, rcp, future_period) %>% 
   spread(key = rcp_period, value = temp_month_diff_period)
 #rename columns
 
 temp_season_by_fp %>% 
-  group_by(temp_var,rcp,future_period, season) %>% 
-  summarize(temp_season_diff_period = median(temp_seasonal_diff)) %>%
+  dplyr::group_by(temp_var,rcp,future_period, season) %>% 
+  dplyr::summarize(temp_season_diff_period = median(temp_seasonal_diff)) %>%
   unite(rcp_period, rcp, future_period) %>% 
   spread(key = rcp_period, value = temp_season_diff_period)
 #rename columns
@@ -378,7 +402,7 @@ map_ccsm4 <- gather(map_ccsm4_tib, key="layer", value="temp",
                          "map_tmax_1hist_ccsm4","map_tmax_45_ccsm4","map_tmax_85_ccsm4",
                          "map_tmin_1hist_ccsm4","map_tmin_45_ccsm4","map_tmin_85_ccsm4")
 map_ccsm4 <- separate(map_ccsm4, layer, into = c("junk", "rcp", "temp_type","junk2"))
-map_ccsm4 <- mutate(map_ccsm4, temp_interval = cut_width(temp, width=4, center = 0))
+map_ccsm4 <- dplyr::mutate(map_ccsm4, temp_interval = cut_width(temp, width=4, center = 0))
 
 
 # Maximum Temperature 
@@ -389,7 +413,7 @@ map_tmax_ccsm4_p <- rasterToPoints(map_tmax_ccsm4_stack)
 map_tmax_ccsm4_tib <- as_tibble(map_tmax_ccsm4_p)
 map_tmax_ccsm4 <- gather(map_tmax_ccsm4_tib, key="layer", value="temp",
                          "map_tmax_1hist_ccsm4","map_tmax_45_ccsm4","map_tmax_85_ccsm4")
-map_tmax_ccsm4 <- mutate(map_tmax_ccsm4, 
+map_tmax_ccsm4 <- dplyr::mutate(map_tmax_ccsm4, 
                          temp_interval = cut_width(temp, width=3,
                                                    center = .5))
 
@@ -401,7 +425,7 @@ map_tmin_ccsm4_p <- rasterToPoints(map_tmin_ccsm4_stack)
 map_tmin_ccsm4_tib <- as_tibble(map_tmin_ccsm4_p)
 map_tmin_ccsm4 <- gather(map_tmin_ccsm4_tib, key="layer", value="temp",
                          "map_tmin_1hist_ccsm4","map_tmin_45_ccsm4","map_tmin_85_ccsm4")
-map_tmin_ccsm4 <- mutate(map_tmin_ccsm4, 
+map_tmin_ccsm4 <- dplyr::mutate(map_tmin_ccsm4, 
                          temp_interval = cut_width(temp, width=3,
                                                    center = .5))
 

@@ -3,6 +3,30 @@
 
 source("R/0_utilities.R")
 
+# ---------------------------------------------------------------------
+# Import processed MACA
+
+# Import precipitation (Lists of rasterbricks for each GCM/scenario)
+precip_hist <- read_rds("output/processed_data/precip_hist.rds")
+precip_proj <- read_rds("output/processed_data/precip_proj.rds")
+
+# Temperature and precipitation data for maps
+precip_hist_map <- precip_hist
+precip_proj_map <- precip_proj
+
+# ------
+# Temperature and precipitation data for analysis
+# Null out raster areas outside of ss border
+ss_border_rast <- rasterize(ss_border_sp, precip_hist[[1]])
+
+# Using a for loop instead of purrr::MAP cause I can't figure out how to rework embedded function to not contain <-
+for (aa in seq_along(precip_hist)){
+  precip_hist[[aa]][is.na(ss_border_rast) == TRUE] <- NA
+}
+for (aa in seq_along(precip_proj)){
+  precip_proj[[aa]][is.na(ss_border_rast) == TRUE] <- NA
+}
+
 
 # ---------------------------------------------------------------------
 # Time-series (processing)
@@ -33,7 +57,7 @@ precip_hist_tib <- precip_hist %>%
   purrr::map(timeseries_mean) %>% 
   bind_rows(.id="type") %>% 
   separate(type, into=c("precip_var", "rcp", "gcm")) %>% 
-  mutate(season = case_when(
+  dplyr::mutate(season = case_when(
     (month==1)~"1",(month==2)~"1",(month==3)~"1",
     (month==4)~"2",(month==5)~"2",(month==6)~"2",
     (month==7)~"3",(month==8)~"3",(month==9)~"3",
@@ -45,7 +69,7 @@ precip_proj_tib <- precip_proj %>%
   purrr::map(timeseries_mean) %>% 
   bind_rows(.id="type") %>% 
   separate(type, into=c("precip_var", "rcp", "gcm")) %>% 
-  mutate(season = case_when(
+  dplyr::mutate(season = case_when(
     (month==1)~"1",(month==2)~"1",(month==3)~"1",
     (month==4)~"2",(month==5)~"2",(month==6)~"2",
     (month==7)~"3",(month==8)~"3",(month==9)~"3",
@@ -56,17 +80,17 @@ precip_proj_tib <- precip_proj %>%
 # Group historical by year so that they means can be joined to future scenarios
 precip_hist_year <- precip_hist_tib %>% 
   group_by(precip_var, gcm) %>% 
-  summarize(precip_hist_annual = mean(precip))
+  dplyr::summarize(precip_hist_annual = mean(precip))
 
 # Group historical by month so that they means can be joined to future scenarios
 precip_hist_month <- precip_hist_tib %>% 
   group_by(precip_var, gcm, month) %>% 
-  summarize(precip_hist_month = mean(precip))
+  dplyr::summarize(precip_hist_month = mean(precip))
 
 # Group historical by season so that they means can be joined to future scenarios
 precip_hist_season <- precip_hist_tib %>% 
   group_by(precip_var, gcm, season) %>% 
-  summarize(precip_hist_season = mean(precip))
+  dplyr::summarize(precip_hist_season = mean(precip))
 
 # Join historical scenarios to future projections and add future period groupings
 precip_tib_final <- precip_proj_tib %>% 
@@ -74,7 +98,7 @@ precip_tib_final <- precip_proj_tib %>%
   left_join(precip_hist_month, by = c("precip_var", "gcm", "month")) %>% 
   left_join(precip_hist_season, by = c("precip_var", "gcm", "season")) %>% 
   dplyr::filter(year >= 2010) %>% 
-  mutate(future_period = case_when(
+  dplyr::mutate(future_period = case_when(
     between(year,2010,2039) ~ "2010-39",
     between(year,2040,2069) ~ "2040-69",
     between(year,2070,2099) ~ "2070-99"
@@ -85,33 +109,33 @@ precip_tib_final <- precip_proj_tib %>%
 
 # Produce summarized annual data by year
 precip_annual <- precip_tib_final %>% 
-  group_by(precip_var, rcp, gcm, year, future_period) %>% 
-  summarise(precip = sum(precip), precip_hist_annual = sum(precip_hist_annual)) %>% 
-  mutate(precip_annual_diff = precip-precip_hist_annual)
+  dplyr::group_by(precip_var, rcp, gcm, year, future_period) %>% 
+  dplyr::summarise(precip = sum(precip), precip_hist_annual = sum(precip_hist_annual)) %>% 
+  dplyr::mutate(precip_annual_diff = precip-precip_hist_annual)
 # Produce summarized annual data by future period
 precip_annual_by_fp <- precip_annual %>% 
-  group_by(precip_var, rcp, gcm, future_period) %>% 
-  summarise(precip = mean(precip), precip_hist_annual=mean(precip_hist_annual),
+  dplyr::group_by(precip_var, rcp, gcm, future_period) %>% 
+  dplyr::summarise(precip = mean(precip), precip_hist_annual=mean(precip_hist_annual),
             precip_annual_diff=mean(precip_annual_diff))
 
 # Produce summarized monthly data
 precip_month <- precip_tib_final %>% 
-  mutate(precip_monthly_diff = precip-precip_hist_month)
+  dplyr::mutate(precip_monthly_diff = precip-precip_hist_month)
 # Produce summarized monthly data by future period
 precip_month_by_fp <- precip_month %>% 
-  group_by(precip_var, rcp, gcm, month, future_period) %>% 
-  summarise(precip = mean(precip), precip_hist_month=mean(precip_hist_month),
+  dplyr::group_by(precip_var, rcp, gcm, month, future_period) %>% 
+  dplyr::summarise(precip = mean(precip), precip_hist_month=mean(precip_hist_month),
             precip_monthly_diff=mean(precip_monthly_diff))
 
 # Produce summarized seasonal data
 precip_season <- precip_tib_final %>% 
-  group_by(precip_var, rcp, gcm, year, season, future_period) %>% 
-  summarise(precip = sum(precip), precip_hist_season = sum(precip_hist_season)) %>% 
-  mutate(precip_seasonal_diff = precip-precip_hist_season)
+  dplyr::group_by(precip_var, rcp, gcm, year, season, future_period) %>% 
+  dplyr::summarise(precip = sum(precip), precip_hist_season = sum(precip_hist_season)) %>% 
+  dplyr::mutate(precip_seasonal_diff = precip-precip_hist_season)
 # Produce summarized seasonal data by future period
 precip_season_by_fp <- precip_season %>% 
-  group_by(precip_var, rcp, gcm, season, future_period) %>% 
-  summarise(precip = mean(precip), precip_hist_season=mean(precip_hist_season),
+  dplyr::group_by(precip_var, rcp, gcm, season, future_period) %>% 
+  dplyr::summarise(precip = mean(precip), precip_hist_season=mean(precip_hist_season),
             precip_seasonal_diff=mean(precip_seasonal_diff))
 
 # ---------------------------------------------------------------------
@@ -155,7 +179,7 @@ ggsave("output/precip_box_annual_delta.jpg", width = 5.5, height = 3.5)
 
 # Baseline annual precipitation values
 precip_annual_by_fp %>% 
-  summarise(mean = mean(precip_hist_annual))
+  dplyr::summarise(mean = mean(precip_hist_annual))
 
 
 # ---------------------------------------------------------------------
@@ -228,8 +252,8 @@ ggsave("output/precip_box_seasonal_delta.jpg", width = 5, height = 4)
 # Mean monthly precipitation
 
 happy <- precip_month %>% 
-  group_by(rcp,future_period,month) %>% 
-  summarize(month_precip=mean(precip))
+  dplyr::group_by(rcp,future_period,month) %>% 
+  dplyr::summarize(month_precip=mean(precip))
 
 ggplot() +
   geom_line(data=happy, aes(x=month,y=month_precip, color=future_period)) +
@@ -244,20 +268,20 @@ library(kableExtra)
 
 # 
 precip_annual_by_fp %>% 
-  group_by(precip_var,rcp,future_period) %>% 
-  summarize(precip_annual_diff_period = mean(precip_annual_diff))
+  dplyr::group_by(precip_var,rcp,future_period) %>% 
+  dplyr::summarize(precip_annual_diff_period = mean(precip_annual_diff))
 
 
 precip_month_by_fp %>% 
-  group_by(precip_var,rcp,future_period, month) %>% 
-  summarize(precip_month_diff_period = mean(precip_monthly_diff)) %>%
+  dplyr::group_by(precip_var,rcp,future_period, month) %>% 
+  dplyr::summarize(precip_month_diff_period = mean(precip_monthly_diff)) %>%
   unite(rcp_period, rcp, future_period) %>% 
   spread(key = rcp_period, value = precip_month_diff_period)
 #rename columns
 
 precip_season_by_fp %>% 
-  group_by(precip_var,rcp,future_period, season) %>% 
-  summarize(precip_season_diff_period = median(precip_seasonal_diff)) %>%
+  dplyr::group_by(precip_var,rcp,future_period, season) %>% 
+  dplyr::summarize(precip_season_diff_period = median(precip_seasonal_diff)) %>%
   unite(rcp_period, rcp, future_period) %>% 
   spread(key = rcp_period, value = precip_season_diff_period)
 #rename columns
@@ -285,7 +309,7 @@ map_precip_ccsm4_p <- rasterToPoints(map_precip_ccsm4_stack)
 map_precip_ccsm4_tib <- as_tibble(map_precip_ccsm4_p)
 map_precip_ccsm4 <- gather(map_precip_ccsm4_tib, key="layer", value="precip",
                          "map_precip_1hist_ccsm4","map_precip_45_ccsm4","map_precip_85_ccsm4")
-map_precip_ccsm4 <- mutate(map_precip_ccsm4, 
+map_precip_ccsm4 <- dplyr::mutate(map_precip_ccsm4, 
                            precip_interval = cut_interval(precip,n=9,
                                                           breaks = c(100,300,500,700,900,
                                                                      1100,1300,1500,1700,1900),

@@ -2,7 +2,10 @@
 # 
 
 source("R/0_utilities.R")
-
+#source("R/1.1_setup_proj_boundaries.R")
+#source("R/1.2_setup_temp_precip.R")
+#source("R/1.5_setup_prism.R")
+#source("R/1.8_setup_mortality_young.R")
 
 # ---------------------------------------------------------------------
 # Code for generating PET via Hamon 1961 method
@@ -16,7 +19,7 @@ daylight_hours <- daylight_hours %>%
   summarize_all(., funs(mean(., na.rm = TRUE))) %>% 
   as_vector()/3600
 
-# Function for Harom PET method
+# Function for Hamon PET method
 pet_hamon <- function(temp, daylight_hours){
   # Hamon, W. R. Estimating potential evapotranspiration. J. Hydraul. Div. 87, 107–120 (1961)
   # Haith, Shoemaker GENERALIZED WATERSHED LOADING FUNCTIONS FOR STREAM FLOW NUTRIENTS
@@ -76,10 +79,140 @@ names(cwd_2085_85) <- "cwd_2085_85"
 
 
 happy_tib <- as_tibble(values(stack(y_15, cwd_2015, cwd_2085_45, cwd_2085_85)))
+happy_tib <- bind_cols(happy_tib, tibble(num = seq_len(base::nrow(happy_tib))))   # Add unique value marker
 
 happy_tib <- happy_tib %>%
-  #gather("future_period", "cwd", c(cwd_2015,cwd_2085_45, cwd_2085_85)) %>% 
-  dplyr::filter(mort.tph>=0)
+  gather("future_period", "cwd", c(cwd_2015,cwd_2085_45, cwd_2085_85)) %>% 
+  dplyr::filter(mort.tph>0)
+
+
+# ---------------------------------------------------------------------
+# Regression model
+
+# Separate happy_tib by future period
+happy_tib_baseline <- happy_tib %>% 
+  dplyr::filter(future_period=="cwd_2015")
+happy_tib_2085_45 <- happy_tib %>% 
+  dplyr::filter(future_period=="cwd_2085_45")
+happy_tib_2085_85 <- happy_tib %>% 
+  dplyr::filter(future_period=="cwd_2085_85")
+
+# ----
+# Build different regression models
+
+# Regr1 is used in appendix report
+regr1 <- happy_tib %>% 
+  dplyr::filter(future_period=="cwd_2015") %>% 
+  lm((mort.tph)~ cwd+live.tph, data=.)
+summary(regr1)
+
+regr1_broom <- broom::tidy(regr1)
+write_csv(regr1_broom, "output/regr1_model_values.csv")
+
+# Regr2 is not used in appendix report
+regr2 <- happy_tib %>% 
+  dplyr::filter(future_period=="cwd_2015") %>% 
+  lm((mort.tph)~cwd+live.bah, data=.)
+summary(regr2)
+
+# Make plot of regr1 (For appendix report methods)
+ggplot(happy_tib) +
+  geom_point(aes(x=live.tph, y=mort.tph, color = cwd)) +
+  labs(title = "Forest Mortality (Wateryear 2015)",x = "Live Trees per Hectare", y = "Dead Trees per Hectare") +
+  scale_color_continuous(low="red", high="blue", name="Water stress:\nP minus PET") +
+  theme_bw(base_size =12) +
+  NULL
+#ggsave("output/mortality_2015.jpg", width = 6, height = 5)
+
+
+# ----
+# Predict the amount of mortality per ha for three scenarios
+mort_tph_baseline <- mean(happy_tib$mort.tph)
+mort_tph_2085_45 <- mean(predict(regr1, happy_tib_2085_45))
+mort_tph_2085_85 <- mean(predict(regr1, happy_tib_2085_85))
+mort_tph2_2085_45 <- mean(predict(regr2, happy_tib_2085_45))
+mort_tph2_2085_85 <- mean(predict(regr2, happy_tib_2085_85))
+
+mort_tph_2085_45/mort_tph_baseline
+mort_tph_2085_85/mort_tph_baseline
+
+mort_tph2_2085_45/mort_tph_baseline
+mort_tph2_2085_85/mort_tph_baseline
+
+
+# ----
+# Compare observed data with modeled results
+
+happy <- mutate(happy_tib_2085_45, mort_2085_45 = predict(regr1, happy_tib_2085_45))
+
+happy <- full_join(
+  dplyr::select(happy, num, mort_2085_45),
+  mutate(happy_tib_2085_85, mort_2085_85 = predict(regr1, happy_tib_2085_85)),
+  by = "num")
+
+happy <- happy %>% 
+  mutate(happy, change_45 = mort_2085_45-mort.tph) %>% 
+  mutate(happy, change_85 = mort_2085_85-mort.tph)  
+
+mort_change_tph_avg_45 <- mean(happy$change_45)
+mort_change_tph_avg_85 <- mean(happy$change_85)
+
+# Change in drought mortality (tph) divided by baseline drought mortality (tph)
+# means <- tibble(change_45 = (mort_change_tph_avg_45+mort_tph_baseline)/mort_tph_baseline,
+#                 change_85 = (mort_change_tph_avg_85+mort_tph_baseline)/mort_tph_baseline)
+# means <- gather(means, change_45, change_85, key="period", value="mort_tph_change")
+
+#Make plot of comparing hist and projected mortality (For appendix report)
+
+happy_gather <- happy %>% 
+  gather(change_45, change_85, key="period", value="mort_tph_change") %>% 
+  dplyr::mutate(mort_tph_change_percent = mort_tph_change/mort_tph_baseline)
+
+# Make plot 
+ggplot(happy_gather,aes(x = period, y=mort_tph_change_percent)) +
+  geom_boxplot(outlier.shape = NA) +
+  labs(title = "Projected Change in Forest Mortality",x = "RCP scenario", y = "Percent Mortality Change (Trees per Hectare)") +
+  theme_bw(base_size =12) +
+  stat_summary(fun.y="mean", geom="point", size=2, color="blue") +
+  scale_y_continuous(labels = scales::percent) +
+  coord_cartesian(ylim = quantile(happy_gather$mort_tph_change_percent, c(0.075, 0.98))) +
+  scale_x_discrete(labels=c("4.5","8.5")) +
+  NULL
+#ggsave("output/mortality_projections.jpg", width = 5, height = 5)
+
+
+plot(happy$mort.tph, happy$mort_2085_45)
+plot(happy$mort.tph, happy$mort_2085_85)
+
+# ----
+# Hurdle model
+
+library(pscl)
+
+
+
+
+# ---------------------------------------------------------------------
+# ---------------------------------------------------------------------
+# ---------------------------------------------------------------------
+# Older code
+
+
+# ----
+
+# This plot is similar to Young 2017.
+happy_tib %>% 
+  dplyr::filter(future_period=="cwd_2015") %>% 
+  ggplot(data = .,aes(x=live.tph,y=mort.tph)) +
+  geom_point(aes(color=cwd)) +
+  scale_color_gradient(low="navajowhite1", high="black", name="Mortality\n(trees/ha)") +
+  stat_smooth(method="lm") +
+  xlim(0,1200) +
+  #labs(title="Forest Mortality (Wateryear 2015)", x="Precipitation minus Potential ET (mm)",y=expression('Live Basal Area ('*m^2*"/ha)"), size=0.5) +
+  theme_bw(base_size =12)
+#ggsave("output/mortality_yes.jpg", width = 6, height = 5)
+
+
 
 
 # ---------------------------------------------------------------------
@@ -95,8 +228,8 @@ happy_tib %>%
   ggplot(data = .,aes(x=cwd,y=live.bah)) +
   geom_point(aes(color=mort.tph)) +
   scale_color_gradient(low="navajowhite1", high="black", name="Mortality\n(trees/ha)") +
-  stat_function(fun=mort_line) +
-  labs(title="Forest Mortality", x="Climatic Water Deficit",y="Live Basal Area per Hectare", size=0.5) +
+  #stat_function(fun=mort_line) +
+  labs(title="Forest Mortality (Wateryear 2015)", x="Precipitation minus Potential ET (mm)",y=expression('Live Basal Area ('*m^2*"/ha)"), size=0.5) +
   theme_bw(base_size =12)
 ggsave("output/mortality_single.jpg", width = 6, height = 5)
 
@@ -152,13 +285,23 @@ mort_percent <- b_mod/nrow(mort_all)
 print(paste("Percent region affected:", round(mort_percent,3)))
 
 
+.428/.324
+.469/.324
+
+
 
 # ---------------------------------------------------------------------
 # Map of mortality
 
+ggplot() +
+  geom_sf(data = ss_mort_2015)
 
 
+ggplot() +
+  geom_sf(data = ss_mort_2016)
 
+ggplot() +
+  geom_sf(data = ss_mort_2017)
 
 
 

@@ -9,8 +9,8 @@ source("R/0_utilities.R")
 
 vic_maps_sum <- purrr::map(vic_maps, function(x){
   tidyr::gather(x,key="location",value="value",2:2046) %>% 
-    group_by(location) %>% 
-    summarise(mean_value = mean(value))
+    dplyr::group_by(location) %>% 
+    dplyr::summarise(mean_value = mean(value))
 })
 
 # Combine tibbles from list into one tibble then separate out coordinates and variable/gcm/period
@@ -20,14 +20,27 @@ vic_maps_tib <- vic_maps_sum %>%
   tidyr::separate(location,into = c("flux", "lat", "long"), sep="_")  %>% 
   dplyr::select(-c(wy, flux))
 
+# Change lat and long from character to double
+vic_maps_tib$lat <- as.double(vic_maps_tib$lat)
+vic_maps_tib$long <- as.double(vic_maps_tib$long)
+
 vic_maps_et <- vic_maps_tib %>% 
   dplyr::filter(flux_type=="et") %>% 
-  mutate(et_interval = cut_interval(mean_value, n=11))
+  mutate(value_interval = cut_interval(mean_value, n=11))
 
 vic_maps_swe <- vic_maps_tib %>% 
   dplyr::filter(flux_type=="swe") %>% 
-  mutate(swe_interval = cut_interval(mean_value, n=11))
+  mutate(value_interval = cut_interval(mean_value, n=11))
 
+
+# vic_maps_tib %>% 
+#   dplyr::group_by(flux_type, lat, long) %>% 
+#   dplyr::summarise(happy = length(mean_value))
+# 
+# happy <- vic_maps_tib %>% 
+#   dplyr::filter(period==45, )
+#   dplyr::group_by(flux_type, lat, long) %>% 
+#   nest()
 
 # ***** Need to select periods, not just RCPs ********
 
@@ -51,11 +64,12 @@ et_map <- function(tib, border, gcm_input){
   )
   
   x <- ggplot() +
-    geom_raster(data=tib,aes(x=long,y=lat, fill=et_interval)) +
-    #geom_sf(data=border, fill=NA, col="white") +
-    scale_fill_brewer(palette = "RdBu", direction=-1, name="ET") +
-    scale_x_continuous(expand=c(0,0)) +   # This eliminates margin buffer around plot
-    scale_y_continuous(expand=c(0,0)) +   # This eliminates margin buffer around plot
+    geom_raster(data=tib,aes(x=long,y=lat, fill=value_interval)) +
+    geom_sf(data=border, fill=NA, col="white") +
+    scale_fill_brewer(palette = "RdBu", direction = -1, name="ET") +
+    #scale_fill_gradient(low="red", high="blue", name="ET") +
+    scale_x_continuous(expand=c(0,0), limits = c(-119.8, -117.86)) +   # This eliminates margin buffer around plot
+    scale_y_continuous(expand=c(0,0), limits = c(35.65, 37.85)) +   # This eliminates margin buffer around plot
     labs(title=paste("ET -", gcm_input), x="Longitude",y="Latitude", size=0.5) +
     theme_classic(base_size =12) +
     theme(axis.text.x = element_text(angle = 330, hjust=0)) +
@@ -70,8 +84,9 @@ et_map <- function(tib, border, gcm_input){
     # geom_text(data = dplyr::filter(cities, name == 'Bishop'), 
     #           aes(x = lon, y = lat, label = paste("  ", as.character(name), sep="")), 
     #           size=3, angle = 0, vjust= -0.85, hjust = 0.95, color = "black") +
-    facet_grid(rcp~period, labeller = as_labeller(c(rcp_id, period_id))) +
-    theme(legend.position = "bottom")
+    # facet_grid(rcp~period, labeller = as_labeller(c(rcp_id, period_id))) +
+    # theme(legend.position = "bottom") +
+    NULL
   #plot(x)
   
   ggsave(paste("output/map_et_",gcm_input,".jpg",sep=""),plot=x, width = 7.5, height = 7)

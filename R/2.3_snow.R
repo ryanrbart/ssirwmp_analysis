@@ -4,14 +4,14 @@
 source("R/0_utilities.R")
 
 # ---------------------------------------------------------------------
-# Processing
+# Processing - map
 
 # Snow data
 # values(snow)
 # cellStats(snow, stat=mean)
 
 # Process snow data for ggplot
-snow_tib <- snow %>% 
+snow_tib <- snow_map %>% 
   rasterToPoints() %>% 
   as_tibble() %>% 
   dplyr::select(x,y,histdjf,rcp85.djf) %>% 
@@ -19,9 +19,7 @@ snow_tib <- snow %>%
   mutate(snowdjf_groups = cut(snowdjf, breaks=c(0,0.1,0.2,0.3,0.4,
                                                 0.5,0.6,0.7,0.8,0.9,1)))
 
-
-
-# ---------------------------------------------------------------------
+# ----
 # Figures - map
 
 
@@ -58,5 +56,25 @@ x <- ggplot() +
 ggsave("output/map_snowline.jpg", width = 7, height = 5)
 
 
+# ---------------------------------------------------------------------
+# Processing - 
+
+snow
+
+
+happy <- snow %>% 
+  rasterToPoints() %>% 
+  as_tibble() %>% 
+  dplyr::select(x,y,histdjf,rcp85.djf) %>% 
+  tidyr::gather(key=period, value=snowdjf,-c(x,y))
+
+happy %>%
+  dplyr::filter(period=="histdjf", snowdjf > 0.9) %>% 
+  nrow()
+  
+
+happy %>%
+  dplyr::filter(period=="rcp85.djf", snowdjf > 0.9) %>% 
+  nrow()
 
 

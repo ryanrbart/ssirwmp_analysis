@@ -191,6 +191,91 @@ library(pscl)
 
 
 
+# -----
+
+
+# ---- 
+# Make a mortality map from young 2015 data 
+
+# Note: to make a projection of mortality from analysis above, possbily replace
+# values function in line 81 with rasterToPoints so that coordinates can be
+# tracked.
+
+y_15_tib <- y_15 %>% 
+  rasterToPoints() %>% 
+  as_tibble() %>% 
+  dplyr::mutate(tph_percent_dead = mort.tph/live.tph) %>% 
+  dplyr::mutate(mort_interval = cut_interval(tph_percent_dead,n=9,
+                                             breaks = c(0,0.0003,0.001,0.003,0.006,0.01,
+                                                        0.03,0.06,0.12,0.18),
+                                             labels = c("0-0.03","0.03-0.01","0.01-0.3",
+                                                        "0.3-0.6","0.6-1","1-3",
+                                                        "3-6","6-12","12-18")))
+
+
+# Mortality - Continuous
+x <- ggplot() +
+  geom_raster(data=y_15_tib,aes(x=x,y=y, fill=tph_percent_dead)) +
+  geom_sf(data=ss_border, fill=NA, col="black") +
+  scale_fill_continuous(low="#FAC000", high="#801100", name="Forest\nMortality (%)") +
+  scale_x_continuous(expand=c(0,0)) +   # This eliminates margin buffer around plot
+  scale_y_continuous(expand=c(0,0)) +   # This eliminates margin buffer around plot
+  labs(title="Forest Mortality - 2015", x="Longitude",y="Latitude", size=0.5) +
+  theme_classic(base_size =10) +
+  theme(axis.text.x = element_text(angle = 330, hjust=0)) +
+  geom_point(data = dplyr::filter(cities, name != 'Fresno'), aes(x = lon, y = lat), 
+             shape = 19, color = "black", fill = "grey50", size = 1.2) +
+  geom_text(data = dplyr::filter(cities, name == 'Visalia'), 
+            aes(x = lon, y = lat, label = paste("  ", as.character(name), sep="")), 
+            size=3, angle = 0, vjust= -0.85, hjust = 0.95, color = "black") +
+  geom_text(data = dplyr::filter(cities, name == 'Porterville'), 
+            aes(x = lon, y = lat, label = paste("  ", as.character(name), sep="")), 
+            size=3, angle = 0, vjust= -0.85, hjust = 1.1, color = "black") +
+  geom_text(data = dplyr::filter(cities, name == 'Bishop'), 
+            aes(x = lon, y = lat, label = paste("  ", as.character(name), sep="")), 
+            size=3, angle = 0, vjust= -0.85, hjust = 0.95, color = "black") +
+  # theme(legend.position = "bottom") +
+  theme(legend.position = "bottom",
+        panel.background = element_rect(fill = 'gray')) +
+  NULL
+#plot(x)
+
+ggsave("output/map_mortality.jpg", plot = x, width = 8, height = 5)
+
+
+
+# Precipitation - Discrete
+x <- ggplot() +
+  geom_raster(data=y_15_tib,aes(x=x,y=y, fill=mort_interval)) +
+  geom_sf(data=ss_border, fill=NA, col="black") +
+  scale_fill_brewer(palette = "OrRd", name="Forest\nMortality (%)",
+                    labels=scales::comma) +
+  scale_x_continuous(expand=c(0,0)) +   # This eliminates margin buffer around plot
+  scale_y_continuous(expand=c(0,0)) +   # This eliminates margin buffer around plot
+  labs(title="Forest Mortality - 2015", x="Longitude",y="Latitude", size=0.5) +
+  theme_classic(base_size =10) +
+  theme(axis.text.x = element_text(angle = 330, hjust=0)) +
+  geom_point(data = dplyr::filter(cities, name != 'Fresno'), aes(x = lon, y = lat), 
+             shape = 19, color = "black", fill = "grey50", size = 1.2) +
+  geom_text(data = dplyr::filter(cities, name == 'Visalia'), 
+            aes(x = lon, y = lat, label = paste("  ", as.character(name), sep="")), 
+            size=3, angle = 0, vjust= -0.85, hjust = 0.95, color = "black") +
+  geom_text(data = dplyr::filter(cities, name == 'Porterville'), 
+            aes(x = lon, y = lat, label = paste("  ", as.character(name), sep="")), 
+            size=3, angle = 0, vjust= -0.85, hjust = 1.1, color = "black") +
+  geom_text(data = dplyr::filter(cities, name == 'Bishop'), 
+            aes(x = lon, y = lat, label = paste("  ", as.character(name), sep="")), 
+            size=3, angle = 0, vjust= -0.85, hjust = 0.95, color = "black") +
+  #theme(legend.position = "bottom") +
+  theme(panel.background = element_rect(fill = 'gray')) +
+  NULL
+  #plot(x)
+ggsave("output/map_mort.jpg", width = 5, height = 5)
+
+
+
+
+
 
 # ---------------------------------------------------------------------
 # ---------------------------------------------------------------------

@@ -160,8 +160,10 @@ wildfire_map <- function(tib, border, gcm_input){
               aes(x = lon, y = lat, label = paste("  ", as.character(name), sep="")), 
               size=3, angle = 0, vjust= -0.85, hjust = 0.95, color = "black") +
     facet_grid(rcp~future_period, labeller = as_labeller(c(rcp_id, period_id))) +
-    theme(legend.position = "bottom",
-          panel.background = element_rect(fill = 'gray'))
+    theme(legend.position = "bottom") +
+    # theme(legend.position = "bottom",
+    #       panel.background = element_rect(fill = 'gray')) +
+    NULL
   #plot(x)
   
   ggsave(paste("output/map_wildfire_",gcm_input,".jpg",sep=""),plot=x, width = 7, height = 7.8)

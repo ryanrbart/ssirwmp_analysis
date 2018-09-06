@@ -100,20 +100,14 @@ fire_map_tib <- bind_rows(fire_map_tib, .id="future_period")
 
 fire_map_tib <- mutate(fire_map_tib, 
                        percent_area_burned = area_burned_h/36,  # Original data is hectares burned per pixel. 6x6km pixel is equal to 3600 ha. To get percent burned, dividing by 3600 and multipling by 100.
-                       mean_annual_percent_area_burned = cut(percent_area_burned,
-                                                             breaks=c(0,0.1,0.2,0.3,0.4,
-                                                                      0.6,0.8,1.1,1.7,2.5,
-                                                                      6,30)))
-
-happy <- fire_map_tib %>% 
-  #dplyr::filter(gcm=="CanESM2")
-  dplyr::filter(gcm=="CNRMCM5")
-  # dplyr::filter(gcm=="HadGEM2ES")
-  # dplyr::filter(gcm=="MIROC5")
-  summary(cut(happy$percent_area_burned,
-              breaks=c(0,0.1,0.2,0.3,0.4,
-                       0.6,0.8,1.1,1.7,2.5,
-                       6,30)))
+                       mean_annual_percent_area_burned = cut_interval(percent_area_burned,n=11,
+                                                                      breaks=c(0,0.1,0.2,0.3,0.4,
+                                                                               0.6,0.8,1.1,1.7,2.5,
+                                                                               6,30),
+                                                                      labels=c("0-0.1","0.1-0.2","0.2-0.3",
+                                                                               "0.3-0.4","0.4-0.6","0.6-0.8",
+                                                                               "0.8-1.1","1.1-1.7","1.7-2.5",
+                                                                               "2.5-6","6-30")))
 
 # Dimesions to deal with.
 # 4 GCMs

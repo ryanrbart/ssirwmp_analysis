@@ -27,3 +27,14 @@ e <- extent(ss_border_sp)
 cities <- read.table("data/ssirwmp_gis/ssirwmp_cities.txt", sep = ",", header = TRUE)
 
 
+# ---------------------------------------------------------------------
+# Import Kings Boundary
+
+kings_border <- st_read(dsn = "data/kings_gis/", layer = "Kings")
+kings_border <- st_transform(kings_border, crs = proj_longlat)
+kings_border_sp <- as(st_geometry(kings_border), "Spatial")  # Change from sf to sp object since raster::crop won't work with extent of sf object
+kings_e <- extent(kings_border_sp)
+# Use kings_border for graphics, kings_e for cropping/masks
+
+
+
